@@ -61,8 +61,8 @@ document.getElementById('clearWeekBtn').addEventListener('click',()=>{
 
 // ── EXPORT ──
 document.getElementById('exportBtn').addEventListener('click',()=>{
-  const ws=wSessions(),sl=wSleep(),dd=dates(),wn=isoWeek(getMonday());
-  let txt=`RUNPLAN — Semaine ${wn}\n${'='.repeat(45)}\n\n`;
+  const monday=getMonday(), ws=wSessions(),sl=wSleep(),dd=dates(),wn=isoWeek(monday),wy=isoWeekYear(monday);
+  let txt=`RUNPLAN — Semaine ${wy}-W${String(wn).padStart(2,'0')}\n${'='.repeat(45)}\n\n`;
   dd.forEach((d,i)=>{
     txt+=`${DAYS[i]} ${d.toLocaleDateString('fr-FR')}\n`;
     const s=sl[i];
@@ -72,7 +72,7 @@ document.getElementById('exportBtn').addEventListener('click',()=>{
     txt+='\n';
   });
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
-  a.download=`runplan-semaine-${isoWeek(getMonday())}.txt`; a.click(); showToast('Export téléchargé ✓');
+  a.download=`runplan-semaine-${wy}-W${String(wn).padStart(2,'0')}.txt`; a.click(); showToast('Export téléchargé ✓');
 });
 
 function showToast(msg,isSleep=false,type=''){
