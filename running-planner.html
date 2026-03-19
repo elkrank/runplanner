@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunPlan — Planning d'entraînement</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f; --surface: #16161a; --surface2: #1e1e24; --border: #2a2a35;
+    --accent: #e8ff47; --accent2: #ff6b35;
+    --sleep: #a78bfa; --sleep-dim: rgba(167,139,250,.15); --sleep-border: rgba(167,139,250,.35);
+    --wt: #34d399; --wt-dim: rgba(52,211,153,.12); --wt-border: rgba(52,211,153,.3);
+    --text: #f0f0f5; --muted: #7a7a8c;
+    --easy: #4ade80; --moderate: #facc15; --hard: #f87171; --rest: #60a5fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; gap: 12px; flex-wrap: wrap; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: .05em; color: var(--accent); line-height: 1; }
+  .logo span { color: var(--text); }
+  .week-nav { display: flex; align-items: center; gap: 12px; }
+  .week-nav button { background: var(--surface2); border: 1px solid var(--border); color: var(--text); width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .week-nav button:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .week-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: .08em; color: var(--muted); min-width: 110px; text-align: center; }
+  .header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .mini-widget { display: flex; align-items: center; gap: 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 11px; color: var(--muted); }
+  .mini-widget input { background: none; border: none; font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; width: 40px; text-align: center; outline: none; letter-spacing: .05em; color: var(--accent); }
+  .mini-widget input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .mini-widget .lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+  .btn { padding: 7px 16px; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-primary:hover { background: #d4e83f; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .tab-btn { padding: 11px 24px; font-family: 'DM Sans', sans-serif; font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); cursor: pointer; background: none; border: none; border-bottom: 2px solid transparent; transition: all .2s; }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-btn.sleep-tab.active { color: var(--sleep); border-bottom-color: var(--sleep); }
+  .tab-btn.wt-tab.active { color: var(--wt); border-bottom-color: var(--wt); }
+
+  .stats-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .stat-item { flex: 1; padding: 12px 16px; border-right: 1px solid var(--border); text-align: center; }
+  .stat-item:last-child { border-right: none; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--accent); letter-spacing: .05em; line-height: 1; }
+  .stat-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
+
+  .planner { display: grid; grid-template-columns: repeat(7, 1fr); min-height: calc(100vh - 165px); }
+  .day-col { border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .day-col:last-child { border-right: none; }
+  .day-header { padding: 12px 10px 8px; border-bottom: 1px solid var(--border); position: sticky; top: 67px; background: var(--bg); z-index: 10; }
+  .day-name { font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: .1em; color: var(--muted); }
+  .day-date { font-size: .73rem; color: var(--muted); opacity: .6; margin-top: 2px; }
+  .day-col.today .day-header { background: var(--surface2); }
+  .day-col.today .day-name { color: var(--accent); }
+  .day-body { flex: 1; padding: 8px 7px; display: flex; flex-direction: column; gap: 7px; }
+
+  .sleep-day-block { background: var(--surface2); border: 1px solid var(--sleep-border); border-radius: 8px; padding: 9px 10px; cursor: pointer; transition: all .2s; border-left: 3px solid var(--sleep); }
+  .sleep-day-block:hover { background: rgba(167,139,250,.1); transform: translateY(-1px); }
+  .sleep-day-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .sleep-day-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--sleep); }
+  .sleep-day-score { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; letter-spacing: .05em; }
+  .sleep-bar-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+  .sleep-bar-fill { height: 100%; border-radius: 2px; background: var(--sleep); transition: width .4s; }
+  .sleep-info { display: flex; gap: 5px; flex-wrap: wrap; }
+  .sleep-pill { font-size: .65rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; }
+  .q-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 1px; background: var(--border); }
+  .q-dot.on { background: var(--sleep); }
+  .sleep-add-btn { background: none; border: 1px dashed var(--sleep-border); border-radius: 7px; color: var(--sleep); opacity: .55; padding: 7px; cursor: pointer; width: 100%; font-size: .72rem; font-family: 'DM Sans', sans-serif; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .sleep-add-btn:hover { opacity: 1; background: var(--sleep-dim); }
+
+  .session-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px; position: relative; cursor: pointer; transition: all .2s; border-left: 3px solid var(--border); }
+  .session-card:hover { border-color: var(--accent); background: #1e1e2a; transform: translateY(-1px); }
+  .session-card.easy { border-left-color: var(--easy); }
+  .session-card.moderate { border-left-color: var(--moderate); }
+  .session-card.hard { border-left-color: var(--hard); }
+  .session-card.rest { border-left-color: var(--rest); opacity: .7; }
+  .session-type { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 3px; }
+  .session-card.easy .session-type { color: var(--easy); }
+  .session-card.moderate .session-type { color: var(--moderate); }
+  .session-card.hard .session-type { color: var(--hard); }
+  .session-card.rest .session-type { color: var(--rest); }
+  .session-title { font-size: .8rem; font-weight: 500; color: var(--text); margin-bottom: 5px; line-height: 1.3; }
+  .session-meta { display: flex; gap: 5px; flex-wrap: wrap; }
+  .meta-pill { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 2px 5px; font-size: .67rem; color: var(--muted); }
+  .meta-pill.calorie { border-color: rgba(255,107,53,.35); color: var(--accent2); background: rgba(255,107,53,.08); }
+  .session-delete { position: absolute; top: 5px; right: 5px; width: 18px; height: 18px; background: none; border: none; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .2s; font-size: .85rem; display: flex; align-items: center; justify-content: center; border-radius: 3px; }
+  .session-card:hover .session-delete { opacity: 1; }
+  .session-delete:hover { background: #ff4444; color: white; }
+  .add-session-btn { background: none; border: 1px dashed var(--border); border-radius: 7px; color: var(--muted); padding: 9px; cursor: pointer; width: 100%; font-size: .75rem; font-family: 'DM Sans', sans-serif; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .add-session-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,.04); }
+
+  /* SLEEP PANEL */
+  #sleepPanel { display: none; padding: 24px 28px; }
+  #sleepPanel.visible { display: block; }
+  .sleep-panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: .08em; color: var(--sleep); margin-bottom: 20px; }
+  .sleep-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 24px; }
+  .sleep-week-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 10px; cursor: pointer; transition: all .2s; text-align: center; }
+  .sleep-week-card:hover { border-color: var(--sleep); }
+  .sleep-week-card.filled { border-color: var(--sleep-border); background: var(--sleep-dim); }
+  .swc-day { font-family: 'Bebas Neue', sans-serif; font-size: .85rem; letter-spacing: .1em; color: var(--muted); }
+  .swc-date { font-size: .65rem; color: var(--muted); opacity: .6; margin: 3px 0 8px; }
+  .swc-hours { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; line-height: 1; margin-bottom: 4px; }
+  .swc-hours.empty { color: var(--border); font-size: 1.3rem; }
+  .swc-qdots { margin-bottom: 6px; }
+  .swc-sub { font-size: .65rem; color: var(--muted); margin-top: 3px; }
+
+  .sleep-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 0; }
+  .sleep-chart-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .sleep-chart-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 14px; }
+  .sleep-chart { display: flex; align-items: flex-end; gap: 6px; height: 110px; }
+  .sleep-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .sleep-bar-col { width: 100%; border-radius: 4px 4px 0 0; transition: height .5s; min-height: 2px; }
+  .sleep-bar-col.low { background: var(--hard); }
+  .sleep-bar-col.ok { background: var(--moderate); }
+  .sleep-bar-col.good { background: var(--easy); }
+  .sleep-bar-col.great { background: var(--sleep); }
+  .sleep-bar-col.empty-bar { background: var(--border); }
+  .sleep-bar-lbl { font-family: 'Bebas Neue', sans-serif; font-size: .72rem; color: var(--muted); }
+  .sleep-bar-val { font-size: .65rem; color: var(--muted); }
+
+  .sleep-tips-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .sleep-tips-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 14px; }
+  .tip-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .tip-row:last-child { border-bottom: none; }
+  .tip-left { display: flex; align-items: center; gap: 9px; }
+  .tip-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+  .tip-label { font-size: .78rem; color: var(--muted); }
+  .tip-val { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: .04em; }
+
+  /* MODALS */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 440px; max-width: 95vw; padding: 26px; transform: translateY(16px); transition: transform .25s; max-height: 90vh; overflow-y: auto; }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: .08em; margin-bottom: 18px; }
+  .modal-title.run { color: var(--accent); }
+  .modal-title.slp { color: var(--sleep); }
+  .form-group { margin-bottom: 13px; }
+  .form-label { display: block; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 5px; }
+  .form-input, .form-select, .form-textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 11px; font-family: 'DM Sans', sans-serif; font-size: .86rem; transition: border-color .2s; outline: none; }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-input.sf:focus { border-color: var(--sleep); }
+  .form-textarea { resize: vertical; min-height: 65px; }
+  .form-row { display: flex; gap: 11px; }
+  .form-row .form-group { flex: 1; }
+  .type-buttons, .quality-selector { display: flex; gap: 7px; }
+  .type-btn, .q-btn { flex: 1; padding: 7px 5px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; transition: all .15s; font-family: 'DM Sans', sans-serif; }
+  .type-btn.ae { background: rgba(74,222,128,.15); color: var(--easy); border-color: var(--easy); }
+  .type-btn.am { background: rgba(250,204,21,.12); color: var(--moderate); border-color: var(--moderate); }
+  .type-btn.ah { background: rgba(248,113,113,.15); color: var(--hard); border-color: var(--hard); }
+  .type-btn.ar { background: rgba(96,165,250,.12); color: var(--rest); border-color: var(--rest); }
+  .q-btn.aq { background: var(--sleep-dim); color: var(--sleep); border-color: var(--sleep); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-actions .btn { flex: 1; padding: 10px; }
+  .btn-slp { background: var(--sleep); color: var(--bg); }
+  .btn-slp:hover { background: #c4b5fd; }
+
+  .toast { position: fixed; bottom: 22px; right: 22px; background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 11px 16px; font-size: .83rem; color: var(--text); z-index: 300; transform: translateY(20px); opacity: 0; transition: all .3s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.slp { border-left-color: var(--sleep); }
+  .toast.wt { border-left-color: var(--wt); }
+
+  /* WEIGHT PANEL */
+  #weightPanel { display: none; padding: 24px 28px; }
+  .wp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
+  .wp-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: .08em; color: var(--wt); }
+  .wp-goal-row { display: flex; align-items: center; gap: 10px; }
+  .wp-goal-row label { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .wp-goal-input { background: var(--surface2); border: 1px solid var(--wt-border); border-radius: 6px; color: var(--wt); padding: 6px 10px; font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; width: 70px; text-align: center; outline: none; letter-spacing: .05em; }
+  .wp-goal-input:focus { border-color: var(--wt); }
+  .wp-goal-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .wp-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 22px; }
+  .wp-stat { padding: 14px 12px; text-align: center; border-right: 1px solid var(--border); }
+  .wp-stat:last-child { border-right: none; }
+  .wp-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--wt); letter-spacing: .05em; line-height: 1; }
+  .wp-stat-lbl { font-size: .67rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
+
+  .wp-main { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+  .wp-chart-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .wp-chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .wp-chart-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .wp-range-btns { display: flex; gap: 4px; }
+  .wp-range-btn { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: none; color: var(--muted); font-size: .72rem; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all .15s; }
+  .wp-range-btn.active { background: var(--wt-dim); color: var(--wt); border-color: var(--wt-border); }
+  .wp-svg-wrap { width: 100%; overflow: hidden; border-radius: 6px; }
+
+  .wp-log-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .wp-log-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 14px; }
+  .wp-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .wp-add-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 10px; font-family: 'DM Sans', sans-serif; font-size: .86rem; outline: none; transition: border-color .2s; }
+  .wp-add-row input:focus { border-color: var(--wt); }
+  .wp-add-row input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .wp-add-btn { background: var(--wt); color: var(--bg); border: none; border-radius: 6px; padding: 8px 14px; font-family: 'DM Sans', sans-serif; font-size: .82rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all .2s; }
+  .wp-add-btn:hover { background: #6ee7b7; }
+  .wp-log-list { max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .wp-log-entry { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; transition: all .2s; }
+  .wp-log-entry:hover { border-color: var(--wt-border); }
+  .wp-log-date { font-size: .75rem; color: var(--muted); }
+  .wp-log-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--wt); letter-spacing: .05em; }
+  .wp-log-delta { font-size: .72rem; padding: 1px 6px; border-radius: 3px; }
+  .wp-log-delta.up { color: var(--hard); background: rgba(248,113,113,.1); }
+  .wp-log-delta.down { color: var(--easy); background: rgba(74,222,128,.1); }
+  .wp-log-delta.same { color: var(--muted); }
+  .wp-log-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .8rem; opacity: 0; transition: opacity .2s; padding: 2px 5px; border-radius: 3px; }
+  .wp-log-entry:hover .wp-log-del { opacity: 1; }
+  .wp-log-del:hover { background: #ff4444; color: white; }
+  .wp-empty { color: var(--muted); font-size: .82rem; text-align: center; padding: 20px 0; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 900px) {
+    .planner { grid-template-columns: 1fr; }
+    .day-col { border-right: none; border-bottom: 1px solid var(--border); }
+    .day-header { position: static; }
+    .stats-bar { flex-wrap: wrap; }
+    .stat-item { min-width: 50%; border-right: none; border-bottom: 1px solid var(--border); }
+    .sleep-week-grid { grid-template-columns: repeat(2,1fr); }
+    .sleep-bottom { grid-template-columns: 1fr; }
+    .wp-main { grid-template-columns: 1fr; }
+    .wp-stats { grid-template-columns: repeat(2,1fr); }
+    .wp-stat { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Run<span>Plan</span></div>
+  <div class="week-nav">
+    <button id="prevWeek">&#8592;</button>
+    <div class="week-label" id="weekLabel">SEMAINE 12</div>
+    <button id="nextWeek">&#8594;</button>
+  </div>
+  <div class="header-right">
+    <div class="mini-widget">
+      <span class="lbl">Poids</span>
+      <input type="number" id="runnerWeight" min="30" max="200" step="0.5" placeholder="70">
+      <span class="lbl">kg</span>
+    </div>
+    <button class="btn btn-outline" id="clearWeekBtn">Vider</button>
+    <button class="btn btn-primary" id="exportBtn">Exporter</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tabTraining" onclick="switchTab('training')">🏃 Entraînement</button>
+  <button class="tab-btn sleep-tab" id="tabSleep" onclick="switchTab('sleep')">🌙 Sommeil</button>
+  <button class="tab-btn wt-tab" id="tabWeight" onclick="switchTab('weight')">⚖️ Poids</button>
+</div>
+
+<div class="stats-bar" id="statsTraining">
+  <div class="stat-item"><div class="stat-value" id="statKm">0 km</div><div class="stat-label">Distance</div></div>
+  <div class="stat-item"><div class="stat-value" id="statTime">0 h</div><div class="stat-label">Temps</div></div>
+  <div class="stat-item"><div class="stat-value" id="statSessions">0</div><div class="stat-label">Séances</div></div>
+  <div class="stat-item"><div class="stat-value" id="statCalories" style="color:var(--accent2)">— kcal</div><div class="stat-label">Calories</div></div>
+  <div class="stat-item"><div class="stat-value" id="statIntensity">—</div><div class="stat-label">Intensité dom.</div></div>
+</div>
+<div class="stats-bar" id="statsSleep" style="display:none">
+  <div class="stat-item"><div class="stat-value" id="slAvg" style="color:var(--sleep)">—</div><div class="stat-label">Moy. / nuit</div></div>
+  <div class="stat-item"><div class="stat-value" id="slTotal" style="color:var(--sleep)">—</div><div class="stat-label">Total semaine</div></div>
+  <div class="stat-item"><div class="stat-value" id="slBest" style="color:var(--sleep)">—</div><div class="stat-label">Meilleure nuit</div></div>
+  <div class="stat-item"><div class="stat-value" id="slQuality" style="color:var(--sleep)">—</div><div class="stat-label">Qualité moy.</div></div>
+  <div class="stat-item"><div class="stat-value" id="slNights" style="color:var(--sleep)">0/7</div><div class="stat-label">Nuits saisies</div></div>
+</div>
+
+<div class="stats-bar" id="statsWeight" style="display:none">
+  <div class="stat-item"><div class="stat-value" id="wtCurrent" style="color:var(--wt)">—</div><div class="stat-label">Poids actuel</div></div>
+  <div class="stat-item"><div class="stat-value" id="wtStart" style="color:var(--wt)">—</div><div class="stat-label">Poids initial</div></div>
+  <div class="stat-item"><div class="stat-value" id="wtDelta" style="color:var(--wt)">—</div><div class="stat-label">Évolution</div></div>
+  <div class="stat-item"><div class="stat-value" id="wtGoalDiff" style="color:var(--wt)">—</div><div class="stat-label">Vs objectif</div></div>
+  <div class="stat-item"><div class="stat-value" id="wtBMI" style="color:var(--wt)">—</div><div class="stat-label">IMC</div></div>
+</div>
+
+<div class="planner" id="planner"></div>
+<div id="sleepPanel">
+  <p class="sleep-panel-title">SUIVI DU SOMMEIL — SEMAINE <span id="slWeekNum"></span></p>
+  <div class="sleep-week-grid" id="sleepGrid"></div>
+  <div class="sleep-bottom">
+    <div class="sleep-chart-wrap">
+      <div class="sleep-chart-title">Durée de sommeil par nuit</div>
+      <div class="sleep-chart" id="sleepChart"></div>
+    </div>
+    <div class="sleep-tips-wrap">
+      <div class="sleep-tips-title">Analyse de la semaine</div>
+      <div id="sleepTips"></div>
+    </div>
+  </div>
+</div>
+
+<div id="weightPanel">
+  <div class="wp-header">
+    <div class="wp-title">⚖️ SUIVI DU POIDS</div>
+    <div class="wp-goal-row">
+      <label>Objectif</label>
+      <input type="number" class="wp-goal-input" id="wtGoalInput" min="30" max="200" step="0.1" placeholder="—">
+      <label>kg</label>
+      <label style="margin-left:12px">Taille</label>
+      <input type="number" class="wp-goal-input" id="wtHeightInput" min="100" max="230" step="1" placeholder="—">
+      <label>cm</label>
+    </div>
+  </div>
+  <div class="wp-stats">
+    <div class="wp-stat"><div class="wp-stat-val" id="wpCur">—</div><div class="wp-stat-lbl">Poids actuel</div></div>
+    <div class="wp-stat"><div class="wp-stat-val" id="wpDelta">—</div><div class="wp-stat-lbl">Évolution totale</div></div>
+    <div class="wp-stat"><div class="wp-stat-val" id="wpGoalDiff">—</div><div class="wp-stat-lbl">Vs objectif</div></div>
+    <div class="wp-stat"><div class="wp-stat-val" id="wpBMI">—</div><div class="wp-stat-lbl">IMC</div></div>
+    <div class="wp-stat"><div class="wp-stat-val" id="wpEntries">0</div><div class="wp-stat-lbl">Mesures</div></div>
+  </div>
+  <div class="wp-main">
+    <div class="wp-chart-card">
+      <div class="wp-chart-header">
+        <div class="wp-chart-title">Courbe de poids</div>
+        <div class="wp-range-btns">
+          <button class="wp-range-btn active" data-range="30" onclick="setWtRange(30)">30j</button>
+          <button class="wp-range-btn" data-range="90" onclick="setWtRange(90)">90j</button>
+          <button class="wp-range-btn" data-range="180" onclick="setWtRange(180)">6m</button>
+          <button class="wp-range-btn" data-range="0" onclick="setWtRange(0)">Tout</button>
+        </div>
+      </div>
+      <div class="wp-svg-wrap" id="wtChartWrap"></div>
+    </div>
+    <div class="wp-log-card">
+      <div class="wp-log-title">Ajouter une mesure</div>
+      <div class="wp-add-row">
+        <input type="date" id="wtDate">
+        <input type="number" id="wtVal" min="30" max="200" step="0.1" placeholder="kg">
+        <button class="wp-add-btn" id="wtAddBtn">＋</button>
+      </div>
+      <div class="wp-log-title">Historique</div>
+      <div class="wp-log-list" id="wtLogList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Training Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title run" id="modalTitle">NOUVELLE SÉANCE</div>
+    <div class="form-group">
+      <label class="form-label">Intensité</label>
+      <div class="type-buttons">
+        <button class="type-btn" data-type="easy">Facile</button>
+        <button class="type-btn" data-type="moderate">Modéré</button>
+        <button class="type-btn" data-type="hard">Intense</button>
+        <button class="type-btn" data-type="rest">Repos</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Type de séance</label>
+      <select class="form-select" id="sessionKind">
+        <option>Footing facile</option><option>Endurance fondamentale</option>
+        <option>Fractionné court</option><option>Fractionné long</option>
+        <option>Allure spécifique</option><option>Sortie longue</option>
+        <option>Côtes / PPG</option><option>Tempo / Seuil</option>
+        <option>Récupération active</option><option>Repos complet</option><option>Personnalisé</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Distance (km)</label><input class="form-input" type="number" id="sessionDist" placeholder="ex: 10" min="0" step="0.5"></div>
+      <div class="form-group"><label class="form-label">Durée (min)</label><input class="form-input" type="number" id="sessionDur" placeholder="ex: 60" min="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Allure cible (min/km)</label><input class="form-input" type="text" id="sessionPace" placeholder="ex: 5:30"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="sessionNotes" placeholder="Détails, objectifs, ressentis..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="cancelBtn">Annuler</button>
+      <button class="btn btn-primary" id="saveBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sleep Modal -->
+<div class="modal-overlay" id="sleepModal">
+  <div class="modal">
+    <div class="modal-title slp" id="sleepModalTitle">SOMMEIL — LUNDI</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Coucher</label><input class="form-input sf" type="time" id="slBedtime" value="22:30"></div>
+      <div class="form-group"><label class="form-label">Lever</label><input class="form-input sf" type="time" id="slWakeup" value="06:30"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Durée (h) — calculée auto</label><input class="form-input sf" type="number" id="slDuration" min="0" max="14" step="0.25" placeholder="ex: 7.5"></div>
+    <div class="form-group">
+      <label class="form-label">Qualité du sommeil</label>
+      <div class="quality-selector">
+        <button class="q-btn" data-q="1">😴 Mauvaise</button>
+        <button class="q-btn" data-q="2">😐 Correct</button>
+        <button class="q-btn" data-q="3">😊 Bonne</button>
+        <button class="q-btn" data-q="4">🌟 Excellente</button>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Réveils nocturnes</label><input class="form-input sf" type="number" id="slWakeups" min="0" max="20" value="0"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="slNotes" placeholder="Stress, alimentation, récupération..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="slCancelBtn">Annuler</button>
+      <button class="btn btn-slp" id="slSaveBtn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const DAYS_SHORT = ['LUN','MAR','MER','JEU','VEN','SAM','DIM'];
+const TYPE_LABELS = { easy:'Facile', moderate:'Modéré', hard:'Intense', rest:'Repos' };
+const MET = { easy:7.0, moderate:9.5, hard:12.5, rest:1.3 };
+const QLABELS = { 1:'Mauvaise', 2:'Correct', 3:'Bonne', 4:'Excellente' };
+const QCOLORS = { 1:'var(--hard)', 2:'var(--moderate)', 3:'var(--easy)', 4:'var(--sleep)' };
+
+let tab = 'training';
+let weekOff = 0;
+let sessions = JSON.parse(localStorage.getItem('rp_sessions') || '{}');
+let sleepData = JSON.parse(localStorage.getItem('rp_sleep') || '{}');
+let weightLog = JSON.parse(localStorage.getItem('rp_weightlog') || '[]'); // [{date:'2024-01-01', val:72.5}]
+let weightGoal = parseFloat(localStorage.getItem('rp_wtgoal') || '0');
+let runnerHeight = parseFloat(localStorage.getItem('rp_height') || '0');
+let weight = parseFloat(localStorage.getItem('rp_weight') || '70');
+let wtRange = 30;
+let editState = null, sleepDay = null;
+let selType = 'easy', selQ = 3;
+
+function getMonday(off = 0) {
+  const n = new Date(), day = n.getDay();
+  const m = new Date(n);
+  m.setDate(n.getDate() + (day===0?-6:1-day) + off*7);
+  m.setHours(0,0,0,0);
+  return m;
+}
+function isoWeek(d) {
+  const dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  dt.setUTCDate(dt.getUTCDate()+4-(dt.getUTCDay()||7));
+  return Math.ceil((((dt-new Date(Date.UTC(dt.getUTCFullYear(),0,1)))/86400000)+1)/7);
+}
+function wkey(off=weekOff) { const d=getMonday(off); return `${d.getFullYear()}-W${String(isoWeek(d)).padStart(2,'0')}`; }
+function dates(off=weekOff) { const m=getMonday(off); return Array.from({length:7},(_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
+function saveSessions() { localStorage.setItem('rp_sessions',JSON.stringify(sessions)); }
+function saveSleep() { localStorage.setItem('rp_sleep',JSON.stringify(sleepData)); }
+function wSessions(off=weekOff) { const k=wkey(off); if(!sessions[k]) sessions[k]=Array.from({length:7},()=>[]); return sessions[k]; }
+function wSleep(off=weekOff) { const k=wkey(off); if(!sleepData[k]) sleepData[k]=Array(7).fill(null); return sleepData[k]; }
+
+function kcal(s) {
+  const w = weight||70;
+  if (s.type==='rest') return 0;
+  const f = {easy:1.0,moderate:1.1,hard:1.25}[s.type]||1;
+  if (s.dist&&parseFloat(s.dist)>0) return Math.round(w*parseFloat(s.dist)*f);
+  if (s.dur&&parseInt(s.dur)>0) return Math.round((MET[s.type]||8)*w*parseInt(s.dur)/60);
+  return 0;
+}
+function slDur(bed,wake) {
+  if (!bed||!wake) return null;
+  const [bh,bm]=bed.split(':').map(Number), [wh,wm]=wake.split(':').map(Number);
+  let m=(wh*60+wm)-(bh*60+bm); if(m<=0) m+=1440;
+  return Math.round(m/60*4)/4;
+}
+function slColor(h) { if(!h)return'empty-bar'; if(h<5.5)return'low'; if(h<7)return'ok'; if(h<8.5)return'good'; return'great'; }
+function slHex(h) { return {low:'var(--hard)',ok:'var(--moderate)',good:'var(--easy)',great:'var(--sleep)','empty-bar':'var(--border)'}[slColor(h)]; }
+
+function switchTab(t) {
+  tab=t;
+  document.getElementById('tabTraining').classList.toggle('active',t==='training');
+  document.getElementById('tabSleep').classList.toggle('active',t==='sleep');
+  document.getElementById('tabWeight').classList.toggle('active',t==='weight');
+  document.getElementById('planner').style.display = t==='training'?'grid':'none';
+  document.getElementById('sleepPanel').style.display = t==='sleep'?'block':'none';
+  document.getElementById('weightPanel').style.display = t==='weight'?'block':'none';
+  document.getElementById('statsTraining').style.display = t==='training'?'flex':'none';
+  document.getElementById('statsSleep').style.display = t==='sleep'?'flex':'none';
+  document.getElementById('statsWeight').style.display = t==='weight'?'flex':'none';
+  render();
+}
+
+function render() {
+  const ws = wSessions(), sl = wSleep(), dd = dates();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const wn = isoWeek(getMonday());
+  document.getElementById('weekLabel').textContent = `SEMAINE ${wn}`;
+
+  // Training stats
+  let km=0,min=0,cnt=0,cal=0, tc={easy:0,moderate:0,hard:0,rest:0};
+  ws.forEach(day=>day.forEach(s=>{ if(s.type!=='rest')cnt++; if(s.dist)km+=parseFloat(s.dist); if(s.dur)min+=parseInt(s.dur); cal+=kcal(s); tc[s.type]=(tc[s.type]||0)+1; }));
+  const dom=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('statKm').textContent=km>0?km.toFixed(1)+' km':'0 km';
+  const hh=Math.floor(min/60),mm=min%60;
+  document.getElementById('statTime').textContent=min>0?(hh>0?`${hh}h${mm>0?mm+'m':''}`:`${mm}min`):'0 h';
+  document.getElementById('statSessions').textContent=cnt;
+  document.getElementById('statCalories').textContent=cal>0?cal.toLocaleString('fr-FR')+' kcal':'— kcal';
+  document.getElementById('statIntensity').textContent=dom&&dom[1]>0?TYPE_LABELS[dom[0]]:'—';
+
+  // Sleep stats
+  const filled=sl.filter(Boolean), hrs=filled.map(s=>s&&s.duration?s.duration:0).filter(h=>h>0);
+  document.getElementById('slNights').textContent=`${filled.length}/7`;
+  if(hrs.length){
+    const avg=hrs.reduce((a,b)=>a+b,0)/hrs.length;
+    document.getElementById('slAvg').textContent=avg.toFixed(1)+'h';
+    document.getElementById('slTotal').textContent=hrs.reduce((a,b)=>a+b,0).toFixed(1)+'h';
+    document.getElementById('slBest').textContent=Math.max(...hrs).toFixed(1)+'h';
+    const fq=filled.filter(s=>s&&s.quality), aq=fq.length?fq.reduce((a,s)=>a+s.quality,0)/fq.length:0;
+    document.getElementById('slQuality').textContent=QLABELS[Math.round(aq)]||'—';
+  } else { ['slAvg','slTotal','slBest','slQuality'].forEach(id=>document.getElementById(id).textContent='—'); }
+
+  if(tab==='training') renderTraining(ws,sl,dd,today);
+  else if(tab==='sleep') renderSleepPanel(sl,dd,wn);
+  else renderWeightPanel();
+}
+
+function wtBMI(w) {
+  if(!runnerHeight||runnerHeight<100) return null;
+  const h=runnerHeight/100;
+  return (w/(h*h)).toFixed(1);
+}
+function wtBMILabel(bmi) {
+  if(!bmi) return '—';
+  const b=parseFloat(bmi);
+  if(b<18.5) return 'Insuffisant';
+  if(b<25) return 'Normal';
+  if(b<30) return 'Surpoids';
+  return 'Obésité';
+}
+function wtBMIColor(bmi) {
+  if(!bmi) return 'var(--muted)';
+  const b=parseFloat(bmi);
+  if(b<18.5) return 'var(--moderate)';
+  if(b<25) return 'var(--easy)';
+  if(b<30) return 'var(--moderate)';
+  return 'var(--hard)';
+}
+
+function setWtRange(r) {
+  wtRange=r;
+  document.querySelectorAll('.wp-range-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.range)===r));
+  renderWeightPanel();
+}
+
+function renderWeightPanel() {
+  const sorted = [...weightLog].sort((a,b)=>a.date.localeCompare(b.date));
+  const cur = sorted.length ? sorted[sorted.length-1].val : null;
+  const first = sorted.length ? sorted[0].val : null;
+  const delta = (cur&&first) ? (cur-first) : null;
+  const goalDiff = (cur&&weightGoal) ? (cur-weightGoal) : null;
+  const bmi = cur ? wtBMI(cur) : null;
+
+  // Header stats bar
+  document.getElementById('wtCurrent').textContent = cur ? cur.toFixed(1)+' kg' : '—';
+  document.getElementById('wtStart').textContent = first ? first.toFixed(1)+' kg' : '—';
+  document.getElementById('wtDelta').textContent = delta!==null ? (delta>0?'+':'')+delta.toFixed(1)+' kg' : '—';
+  document.getElementById('wtDelta').style.color = delta===null?'var(--wt)':delta>0?'var(--hard)':delta<0?'var(--easy)':'var(--wt)';
+  document.getElementById('wtGoalDiff').textContent = goalDiff!==null ? (goalDiff>0?'+':'')+goalDiff.toFixed(1)+' kg' : '—';
+  document.getElementById('wtGoalDiff').style.color = goalDiff===null?'var(--wt)':Math.abs(goalDiff)<0.5?'var(--easy)':goalDiff>0?'var(--hard)':'var(--easy)';
+  document.getElementById('wtBMI').textContent = bmi ? bmi : '—';
+  document.getElementById('wtBMI').style.color = bmi ? wtBMIColor(bmi) : 'var(--wt)';
+
+  // Panel stats
+  document.getElementById('wpCur').textContent = cur ? cur.toFixed(1)+' kg' : '—';
+  document.getElementById('wpDelta').textContent = delta!==null ? (delta>0?'+':'')+delta.toFixed(1)+' kg' : '—';
+  document.getElementById('wpDelta').style.color = delta===null?'var(--wt)':delta>0?'var(--hard)':delta<0?'var(--easy)':'var(--wt)';
+  document.getElementById('wpGoalDiff').textContent = goalDiff!==null ? (goalDiff>0?'+':'')+goalDiff.toFixed(1)+' kg' : '—';
+  document.getElementById('wpGoalDiff').style.color = goalDiff===null?'var(--wt)':Math.abs(goalDiff)<0.5?'var(--easy)':goalDiff>0?'var(--hard)':'var(--easy)';
+  const bmiLabel = bmi ? `${bmi} (${wtBMILabel(bmi)})` : '—';
+  document.getElementById('wpBMI').textContent = bmiLabel;
+  document.getElementById('wpBMI').style.color = bmi ? wtBMIColor(bmi) : 'var(--wt)';
+  document.getElementById('wpEntries').textContent = sorted.length;
+
+  // Filter by range
+  let display = sorted;
+  if(wtRange>0) {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-wtRange);
+    const cutStr = cutoff.toISOString().split('T')[0];
+    display = sorted.filter(e=>e.date>=cutStr);
+  }
+
+  // SVG Chart
+  renderWtChart(display, weightGoal);
+
+  // Log list
+  const list = document.getElementById('wtLogList');
+  list.innerHTML = '';
+  if(!sorted.length) { list.innerHTML='<div class="wp-empty">Aucune mesure. Ajoutez votre premier poids !</div>'; return; }
+  const rev = [...sorted].reverse();
+  rev.forEach((e,i)=>{
+    const prev = rev[i+1];
+    const diff = prev ? e.val-prev.val : null;
+    const deltaClass = diff===null?'same':diff>0?'up':'down';
+    const deltaStr = diff===null?'—':(diff>0?'+':'')+diff.toFixed(1)+' kg';
+    const row = document.createElement('div'); row.className='wp-log-entry';
+    row.innerHTML=`<span class="wp-log-date">${new Date(e.date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</span><span class="wp-log-val">${e.val.toFixed(1)} kg</span><span class="wp-log-delta ${deltaClass}">${deltaStr}</span><button class="wp-log-del" data-date="${e.date}">✕</button>`;
+    list.appendChild(row);
+  });
+  list.addEventListener('click',e=>{
+    const btn=e.target.closest('.wp-log-del');
+    if(btn){ weightLog=weightLog.filter(x=>x.date!==btn.dataset.date); localStorage.setItem('rp_weightlog',JSON.stringify(weightLog)); renderWeightPanel(); showToast('Mesure supprimée',false,'wt'); }
+  });
+}
+
+function renderWtChart(data, goal) {
+  const wrap = document.getElementById('wtChartWrap');
+  const W=wrap.clientWidth||600, H=220;
+  const PAD={top:20,right:20,bottom:36,left:44};
+  const cw=W-PAD.left-PAD.right, ch=H-PAD.top-PAD.bottom;
+
+  if(!data.length){
+    wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%"><text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--muted)" font-family="DM Sans" font-size="13">Aucune donnée à afficher</text></svg>`;
+    return;
+  }
+
+  const vals = data.map(d=>d.val);
+  let minV = Math.min(...vals), maxV = Math.max(...vals);
+  if(goal) { minV=Math.min(minV,goal); maxV=Math.max(maxV,goal); }
+  const pad = Math.max(0.5,(maxV-minV)*0.15)||1;
+  minV-=pad; maxV+=pad;
+
+  const xScale = i => PAD.left + (data.length>1 ? i/(data.length-1)*cw : cw/2);
+  const yScale = v => PAD.top + ch - ((v-minV)/(maxV-minV))*ch;
+
+  // Y grid lines
+  const yTicks=5;
+  let gridLines='', yLabels='';
+  for(let i=0;i<=yTicks;i++){
+    const v=minV+(maxV-minV)*i/yTicks;
+    const y=yScale(v);
+    gridLines+=`<line x1="${PAD.left}" y1="${y}" x2="${PAD.left+cw}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+    yLabels+=`<text x="${PAD.left-6}" y="${y+4}" text-anchor="end" fill="var(--muted)" font-family="DM Sans" font-size="10">${v.toFixed(1)}</text>`;
+  }
+
+  // X labels (show ~6 max)
+  let xLabels='';
+  const step=Math.max(1,Math.floor(data.length/6));
+  data.forEach((d,i)=>{
+    if(i%step===0||i===data.length-1){
+      const x=xScale(i), y=PAD.top+ch+22;
+      const dt=new Date(d.date+'T12:00:00');
+      const lbl=dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+      xLabels+=`<text x="${x}" y="${y}" text-anchor="middle" fill="var(--muted)" font-family="DM Sans" font-size="10">${lbl}</text>`;
+    }
+  });
+
+  // Area fill
+  let areaPath=`M ${xScale(0)} ${PAD.top+ch}`;
+  data.forEach((d,i)=>{ areaPath+=` L ${xScale(i)} ${yScale(d.val)}`; });
+  areaPath+=` L ${xScale(data.length-1)} ${PAD.top+ch} Z`;
+
+  // Line path
+  let linePath='';
+  data.forEach((d,i)=>{ linePath+=(i===0?'M':'L')+` ${xScale(i)} ${yScale(d.val)}`; });
+
+  // Goal line
+  let goalLine='';
+  if(goal&&goal>=minV&&goal<=maxV){
+    const gy=yScale(goal);
+    goalLine=`<line x1="${PAD.left}" y1="${gy}" x2="${PAD.left+cw}" y2="${gy}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.7"/>
+    <text x="${PAD.left+cw-2}" y="${gy-5}" text-anchor="end" fill="var(--accent)" font-family="DM Sans" font-size="10">Objectif ${goal} kg</text>`;
+  }
+
+  // Dots
+  let dots='';
+  const showDots = data.length<=60;
+  if(showDots) data.forEach((d,i)=>{
+    dots+=`<circle cx="${xScale(i)}" cy="${yScale(d.val)}" r="3.5" fill="var(--wt)" stroke="var(--bg)" stroke-width="1.5">
+      <title>${new Date(d.date+'T12:00:00').toLocaleDateString('fr-FR')} — ${d.val} kg</title>
+    </circle>`;
+  });
+
+  // Trend line (linear regression)
+  let trendLine='';
+  if(data.length>=3){
+    const n=data.length, xs=data.map((_,i)=>i), ys=data.map(d=>d.val);
+    const mx=xs.reduce((a,b)=>a+b,0)/n, my=ys.reduce((a,b)=>a+b,0)/n;
+    const num=xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0);
+    const den=xs.reduce((a,x)=>a+(x-mx)**2,0);
+    const slope=den?num/den:0, intercept=my-slope*mx;
+    const ty0=intercept, ty1=slope*(n-1)+intercept;
+    trendLine=`<line x1="${xScale(0)}" y1="${yScale(ty0)}" x2="${xScale(n-1)}" y2="${yScale(ty1)}" stroke="rgba(52,211,153,0.35)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+  }
+
+  wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block">
+    <defs>
+      <linearGradient id="wtGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--wt)" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="var(--wt)" stop-opacity="0.02"/>
+      </linearGradient>
+    </defs>
+    ${gridLines}${yLabels}${xLabels}
+    <path d="${areaPath}" fill="url(#wtGrad)"/>
+    ${trendLine}
+    ${goalLine}
+    <path d="${linePath}" fill="none" stroke="var(--wt)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+  </svg>`;
+}
+
+function renderTraining(ws,sl,dd,today) {
+  const p=document.getElementById('planner'); p.innerHTML='';
+  dd.forEach((date,i)=>{
+    const isToday=date.getTime()===today.getTime();
+    const col=document.createElement('div'); col.className='day-col'+(isToday?' today':'');
+    const hdr=document.createElement('div'); hdr.className='day-header';
+    hdr.innerHTML=`<div class="day-name">${DAYS_SHORT[i]}</div><div class="day-date">${date.getDate()} ${date.toLocaleString('fr-FR',{month:'short'})}</div>`;
+    col.appendChild(hdr);
+    const body=document.createElement('div'); body.className='day-body';
+
+    // Sleep block
+    const s=sl[i];
+    if(s&&s.duration){
+      const pct=Math.min(100,(s.duration/10)*100);
+      const dots=s.quality?Array.from({length:4},(_,k)=>`<span class="q-dot ${k<s.quality?'on':''}"></span>`).join(''):'';
+      const blk=document.createElement('div'); blk.className='sleep-day-block';
+      blk.innerHTML=`<div class="sleep-day-header"><span class="sleep-day-label">🌙 Sommeil</span><span class="sleep-day-score" style="color:${QCOLORS[s.quality]||'var(--sleep)'}">${s.duration}h</span></div><div class="sleep-bar-bg"><div class="sleep-bar-fill" style="width:${pct}%"></div></div><div class="sleep-info">${s.bedtime?`<span class="sleep-pill">🛏 ${s.bedtime}</span>`:''} ${s.wakeup?`<span class="sleep-pill">⏰ ${s.wakeup}</span>`:''} ${s.quality?`<span class="sleep-pill">${dots}</span>`:''} ${s.wakeups?`<span class="sleep-pill">↑${s.wakeups}×</span>`:''}</div>`;
+      blk.addEventListener('click',()=>openSleepModal(i));
+      body.appendChild(blk);
+    } else {
+      const ab=document.createElement('button'); ab.className='sleep-add-btn'; ab.innerHTML='🌙 Saisir sommeil';
+      ab.addEventListener('click',()=>openSleepModal(i)); body.appendChild(ab);
+    }
+
+    // Sessions
+    (ws[i]||[]).forEach((s,si)=>{
+      const card=document.createElement('div'); card.className=`session-card ${s.type}`;
+      const m=[]; if(s.dist) m.push(`<span class="meta-pill">📍 ${s.dist} km</span>`); if(s.dur) m.push(`<span class="meta-pill">⏱ ${s.dur} min</span>`); if(s.pace) m.push(`<span class="meta-pill">🏃 ${s.pace}/km</span>`);
+      const c=kcal(s); if(c>0) m.push(`<span class="meta-pill calorie">🔥 ${c} kcal</span>`);
+      card.innerHTML=`<div class="session-type">${TYPE_LABELS[s.type]}</div><div class="session-title">${s.kind}</div>${m.length?`<div class="session-meta">${m.join('')}</div>`:''} ${s.notes?`<div style="font-size:.7rem;color:var(--muted);margin-top:5px;font-style:italic">${s.notes}</div>`:''}<button class="session-delete" data-d="${i}" data-si="${si}">✕</button>`;
+      card.addEventListener('click',e=>{ if(!e.target.classList.contains('session-delete')) openModal(i,si); });
+      body.appendChild(card);
+    });
+
+    const ab=document.createElement('button'); ab.className='add-session-btn'; ab.innerHTML='＋ Ajouter séance';
+    ab.addEventListener('click',()=>openModal(i,null)); body.appendChild(ab);
+    body.addEventListener('click',e=>{ const d=e.target.closest('.session-delete'); if(d){ wSessions()[parseInt(d.dataset.d)].splice(parseInt(d.dataset.si),1); saveSessions(); render(); showToast('Séance supprimée'); }});
+    col.appendChild(body); p.appendChild(col);
+  });
+}
+
+function renderSleepPanel(sl,dd,wn) {
+  document.getElementById('slWeekNum').textContent=wn;
+  const grid=document.getElementById('sleepGrid'); grid.innerHTML='';
+  dd.forEach((date,i)=>{
+    const s=sl[i];
+    const card=document.createElement('div'); card.className='sleep-week-card'+(s?' filled':'');
+    const dots=s&&s.quality?Array.from({length:4},(_,k)=>`<span class="q-dot ${k<s.quality?'on':''}"></span>`).join(''):'';
+    card.innerHTML=`<div class="swc-day">${DAYS_SHORT[i]}</div><div class="swc-date">${date.getDate()} ${date.toLocaleString('fr-FR',{month:'short'})}</div>${s&&s.duration?`<div class="swc-hours" style="color:${QCOLORS[s.quality]||'var(--sleep)'}">${s.duration}h</div><div class="swc-qdots">${dots}</div>${s.bedtime?`<div class="swc-sub">${s.bedtime} → ${s.wakeup}</div>`:''} ${s.wakeups?`<div class="swc-sub">${s.wakeups} réveil(s)</div>`:''}` : `<div class="swc-hours empty">—</div><div class="swc-sub">Non saisi</div>`}`;
+    card.addEventListener('click',()=>openSleepModal(i)); grid.appendChild(card);
+  });
+
+  // Chart
+  const chart=document.getElementById('sleepChart'); chart.innerHTML='';
+  const maxH=Math.max(9,...sl.filter(Boolean).map(s=>s&&s.duration?s.duration:0));
+  dd.forEach((date,i)=>{
+    const s=sl[i], h=s&&s.duration?s.duration:0;
+    const pct=h>0?(h/maxH)*100:5;
+    const cc=slColor(h);
+    const w=document.createElement('div'); w.className='sleep-bar-wrap';
+    w.innerHTML=`<div style="height:${pct}%;width:100%"><div class="sleep-bar-col ${cc}" style="height:100%" title="${h?h+'h':'—'}"></div></div><div class="sleep-bar-lbl">${DAYS_SHORT[i]}</div><div class="sleep-bar-val">${h?h+'h':'—'}</div>`;
+    chart.appendChild(w);
+  });
+
+  // Tips
+  const tips=document.getElementById('sleepTips'); tips.innerHTML='';
+  const filled=sl.filter(Boolean), hrs=filled.map(s=>s&&s.duration?s.duration:0).filter(h=>h>0);
+  if(!hrs.length){ tips.innerHTML=`<div style="color:var(--muted);font-size:.82rem;padding:8px 0">Aucune nuit saisie cette semaine. Clique sur un jour pour commencer.</div>`; return; }
+  const avg=hrs.reduce((a,b)=>a+b,0)/hrs.length;
+  const deficit=Math.max(0,8-avg);
+  const spread=Math.max(...hrs)-Math.min(...hrs);
+  const fq=filled.filter(s=>s&&s.quality), aq=fq.length?fq.reduce((a,s)=>a+s.quality,0)/fq.length:0;
+  const medBed=(()=>{ const bt=filled.filter(s=>s&&s.bedtime).map(s=>{ const[h,m]=s.bedtime.split(':').map(Number); return h<12?h*60+m+1440:h*60+m; }); if(!bt.length)return'—'; const md=bt.sort((a,b)=>a-b)[Math.floor(bt.length/2)]; return `${String(Math.floor(md/60)%24).padStart(2,'0')}:${String(md%60).padStart(2,'0')}`; })();
+  const rows=[
+    {icon:'⏱',label:'Moyenne / nuit',val:avg.toFixed(1)+'h',color:avg>=7?'var(--easy)':avg>=6?'var(--moderate)':'var(--hard)'},
+    {icon:'📉',label:'Déficit semaine',val:deficit>0?'−'+(deficit*filled.length).toFixed(1)+'h':'✓ Suffisant',color:deficit>0?'var(--hard)':'var(--easy)'},
+    {icon:'📊',label:'Régularité',val:spread<=1.5?'Bonne':spread<=2.5?'Irrégulier':'Très irrégulier',color:spread<=1.5?'var(--easy)':spread<=2.5?'var(--moderate)':'var(--hard)'},
+    {icon:'⭐',label:'Qualité moy.',val:QLABELS[Math.round(aq)]||'—',color:aq>=3?'var(--easy)':aq>=2?'var(--moderate)':'var(--hard)'},
+    {icon:'🌙',label:'Coucher médian',val:medBed,color:'var(--sleep)'},
+    {icon:'💡',label:'Conseil',val:avg<6?'Priorité au sommeil!':deficit>0?'Rattrapez le déficit':spread>2?'Régularisez les horaires':'Bonne routine 👍',color:'var(--muted)'},
+  ];
+  rows.forEach(r=>{ const d=document.createElement('div'); d.className='tip-row'; d.innerHTML=`<div class="tip-left"><span class="tip-icon">${r.icon}</span><span class="tip-label">${r.label}</span></div><span class="tip-val" style="color:${r.color}">${r.val}</span>`; tips.appendChild(d); });
+}
+
+// ── TRAINING MODAL ──
+let curDay=null;
+function openModal(di,si) {
+  curDay=di; editState=si!==null?si:null;
+  const ws=wSessions(), ex=si!==null?ws[di][si]:null;
+  document.getElementById('modalTitle').textContent=ex?'MODIFIER LA SÉANCE':'NOUVELLE SÉANCE';
+  setType(ex?ex.type:'easy');
+  document.getElementById('sessionKind').value=ex?ex.kind:'Footing facile';
+  document.getElementById('sessionDist').value=ex?(ex.dist||''):'';
+  document.getElementById('sessionDur').value=ex?(ex.dur||''):'';
+  document.getElementById('sessionPace').value=ex?(ex.pace||''):'';
+  document.getElementById('sessionNotes').value=ex?(ex.notes||''):'';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); curDay=null; editState=null; }
+function setType(t){ selType=t; document.querySelectorAll('.type-btn').forEach(b=>{ b.className='type-btn'; if(b.dataset.type===t) b.classList.add({easy:'ae',moderate:'am',hard:'ah',rest:'ar'}[t]); }); }
+document.querySelectorAll('.type-btn').forEach(b=>b.addEventListener('click',()=>setType(b.dataset.type)));
+document.getElementById('cancelBtn').addEventListener('click',closeModal);
+document.getElementById('modalOverlay').addEventListener('click',e=>{ if(e.target===document.getElementById('modalOverlay'))closeModal(); });
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  const s={type:selType,kind:document.getElementById('sessionKind').value,dist:document.getElementById('sessionDist').value,dur:document.getElementById('sessionDur').value,pace:document.getElementById('sessionPace').value,notes:document.getElementById('sessionNotes').value};
+  const ws=wSessions(); if(!ws[curDay])ws[curDay]=[];
+  if(editState!==null){ws[curDay][editState]=s;showToast('Séance mise à jour ✓');}
+  else{ws[curDay].push(s);showToast('Séance ajoutée ✓');}
+  saveSessions();closeModal();render();
+});
+
+// ── SLEEP MODAL ──
+function openSleepModal(di){
+  sleepDay=di;
+  const sl=wSleep(), ex=sl[di];
+  document.getElementById('sleepModalTitle').textContent=`SOMMEIL — ${DAYS[di].toUpperCase()}`;
+  document.getElementById('slBedtime').value=ex?(ex.bedtime||'22:30'):'22:30';
+  document.getElementById('slWakeup').value=ex?(ex.wakeup||'06:30'):'06:30';
+  document.getElementById('slDuration').value=ex?(ex.duration||''):'';
+  document.getElementById('slWakeups').value=ex?(ex.wakeups||0):0;
+  document.getElementById('slNotes').value=ex?(ex.notes||''):'';
+  setQ(ex?(ex.quality||3):3);
+  document.getElementById('sleepModal').classList.add('open');
+}
+function closeSleepModal(){ document.getElementById('sleepModal').classList.remove('open'); sleepDay=null; }
+function setQ(q){ selQ=q; document.querySelectorAll('.q-btn').forEach(b=>{ b.classList.toggle('aq',parseInt(b.dataset.q)===q); }); }
+document.querySelectorAll('.q-btn').forEach(b=>b.addEventListener('click',()=>setQ(parseInt(b.dataset.q))));
+['slBedtime','slWakeup'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{
+  const d=slDur(document.getElementById('slBedtime').value,document.getElementById('slWakeup').value);
+  if(d!==null)document.getElementById('slDuration').value=d;
+}));
+document.getElementById('slCancelBtn').addEventListener('click',closeSleepModal);
+document.getElementById('sleepModal').addEventListener('click',e=>{ if(e.target===document.getElementById('sleepModal'))closeSleepModal(); });
+document.getElementById('slSaveBtn').addEventListener('click',()=>{
+  const bt=document.getElementById('slBedtime').value, wk=document.getElementById('slWakeup').value;
+  let dur=parseFloat(document.getElementById('slDuration').value);
+  if(!dur||isNaN(dur))dur=slDur(bt,wk);
+  const entry={bedtime:bt,wakeup:wk,duration:dur,quality:selQ,wakeups:parseInt(document.getElementById('slWakeups').value)||0,notes:document.getElementById('slNotes').value};
+  wSleep()[sleepDay]=entry; saveSleep(); closeSleepModal(); render(); showToast('Sommeil enregistré 🌙',true);
+});
+
+// ── WEIGHT PANEL INIT ──
+const wtGoalInput = document.getElementById('wtGoalInput');
+const wtHeightInput = document.getElementById('wtHeightInput');
+wtGoalInput.value = weightGoal || '';
+wtHeightInput.value = runnerHeight || '';
+wtGoalInput.addEventListener('change',()=>{ weightGoal=parseFloat(wtGoalInput.value)||0; localStorage.setItem('rp_wtgoal',weightGoal); renderWeightPanel(); });
+wtHeightInput.addEventListener('change',()=>{ runnerHeight=parseFloat(wtHeightInput.value)||0; localStorage.setItem('rp_height',runnerHeight); renderWeightPanel(); });
+
+// Set default date to today
+document.getElementById('wtDate').value = new Date().toISOString().split('T')[0];
+
+document.getElementById('wtAddBtn').addEventListener('click',()=>{
+  const date=document.getElementById('wtDate').value;
+  const val=parseFloat(document.getElementById('wtVal').value);
+  if(!date||isNaN(val)||val<30||val>250){ showToast('Valeur invalide','','wt'); return; }
+  // Replace existing entry for same date
+  weightLog=weightLog.filter(e=>e.date!==date);
+  weightLog.push({date,val});
+  localStorage.setItem('rp_weightlog',JSON.stringify(weightLog));
+  // Update running weight for calorie calc
+  weight=val; localStorage.setItem('rp_weight',val);
+  document.getElementById('runnerWeight').value=val;
+  document.getElementById('wtVal').value='';
+  renderWeightPanel(); showToast('Poids enregistré ✓',false,'wt');
+});
+
+// ── WEIGHT (header widget) ──
+const wi=document.getElementById('runnerWeight');
+wi.value=weight;
+wi.addEventListener('input',()=>{ const v=parseFloat(wi.value); if(v>=30&&v<=200){weight=v;localStorage.setItem('rp_weight',v);render();} });
+
+// ── NAV ──
+document.getElementById('prevWeek').addEventListener('click',()=>{ weekOff--; render(); });
+document.getElementById('nextWeek').addEventListener('click',()=>{ weekOff++; render(); });
+document.getElementById('clearWeekBtn').addEventListener('click',()=>{
+  if(!confirm('Vider les séances de cette semaine ?'))return;
+  sessions[wkey()]=Array.from({length:7},()=>[]); saveSessions(); render(); showToast('Semaine vidée');
+});
+
+// ── EXPORT ──
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const ws=wSessions(),sl=wSleep(),dd=dates(),wn=isoWeek(getMonday());
+  let txt=`RUNPLAN — Semaine ${wn}\n${'='.repeat(45)}\n\n`;
+  dd.forEach((d,i)=>{
+    txt+=`${DAYS[i]} ${d.toLocaleDateString('fr-FR')}\n`;
+    const s=sl[i];
+    if(s&&s.duration)txt+=`  🌙 Sommeil: ${s.duration}h — ${QLABELS[s.quality]||'?'} — ${s.bedtime||'?'}→${s.wakeup||'?'}${s.wakeups?` — ${s.wakeups} réveil(s)`:''}\n`;
+    if(!ws[i]||!ws[i].length)txt+='  — Aucune séance\n';
+    else ws[i].forEach(s=>{ const c=kcal(s); txt+=`  • [${TYPE_LABELS[s.type]}] ${s.kind}${s.dist?` — ${s.dist} km`:''}${s.dur?` — ${s.dur} min`:''}${s.pace?` @ ${s.pace}/km`:''}${c>0?` — ~${c} kcal`:''}${s.notes?`\n    Note: ${s.notes}`:''}\n`; });
+    txt+='\n';
+  });
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  a.download=`runplan-semaine-${isoWeek(getMonday())}.txt`; a.click(); showToast('Export téléchargé ✓');
+});
+
+function showToast(msg,isSleep=false,type=''){
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.className='toast show'+(isSleep?' slp':'')+(type==='wt'?' wt':'');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── SAMPLE DATA ──
+// Init latest weight in header from log
+(function(){
+  if(weightLog.length){
+    const sorted=[...weightLog].sort((a,b)=>a.date.localeCompare(b.date));
+    const latest=sorted[sorted.length-1].val;
+    weight=latest; localStorage.setItem('rp_weight',latest);
+    document.getElementById('runnerWeight').value=latest;
+  }
+})();
+
+function initSample(){
+  const k=wkey(0);
+  if(!sessions[k]){
+    sessions[k]=[
+      [{type:'easy',kind:'Footing facile',dist:'8',dur:'48',pace:'6:00',notes:'Allure conversation'}],[],
+      [{type:'hard',kind:'Fractionné court',dist:'10',dur:'55',pace:'4:15',notes:'10×400m avec 90s récup'}],
+      [{type:'easy',kind:'Récupération active',dist:'5',dur:'35',pace:'7:00',notes:''}],[],
+      [{type:'moderate',kind:'Sortie longue',dist:'18',dur:'105',pace:'5:50',notes:'Progressif, allure marathon en fin'}],
+      [{type:'rest',kind:'Repos complet',dist:'',dur:'',pace:'',notes:'Étirements, foam roller'}],
+    ]; saveSessions();
+  }
+  if(!sleepData[k]||sleepData[k].every(s=>!s)){
+    sleepData[k]=[
+      {bedtime:'22:45',wakeup:'06:30',duration:7.75,quality:3,wakeups:1,notes:''},
+      {bedtime:'23:30',wakeup:'07:00',duration:7.5,quality:2,wakeups:2,notes:'Stress avant fractionné'},
+      {bedtime:'22:00',wakeup:'06:00',duration:8,quality:4,wakeups:0,notes:''},
+      {bedtime:'23:00',wakeup:'06:30',duration:7.5,quality:3,wakeups:1,notes:''},
+      {bedtime:'00:30',wakeup:'07:30',duration:7,quality:2,wakeups:2,notes:'Couché tard'},
+      {bedtime:'22:30',wakeup:'07:30',duration:9,quality:4,wakeups:0,notes:'Bonne récup sortie longue'},
+      null,
+    ]; saveSleep();
+  }
+  if(!weightLog.length){
+    const today=new Date(); const base=74.2;
+    for(let i=34;i>=0;i-=2){
+      const d=new Date(today); d.setDate(today.getDate()-i);
+      const v=parseFloat((base - i*0.04 + (Math.random()-0.5)*0.4).toFixed(1));
+      const ds=d.toISOString().split('T')[0];
+      if(!weightLog.find(e=>e.date===ds)) weightLog.push({date:ds,val:v});
+    }
+    localStorage.setItem('rp_weightlog',JSON.stringify(weightLog));
+    weightGoal=72; localStorage.setItem('rp_wtgoal',weightGoal); document.getElementById('wtGoalInput').value=72;
+    runnerHeight=178; localStorage.setItem('rp_height',runnerHeight); document.getElementById('wtHeightInput').value=178;
+    // Seed header widget with latest
+    const sorted=[...weightLog].sort((a,b)=>a.date.localeCompare(b.date));
+    weight=sorted[sorted.length-1].val; localStorage.setItem('rp_weight',weight);
+    document.getElementById('runnerWeight').value=weight;
+  }
+}
+
+initSample();
+render();
+</script>
+</body>
+</html>
