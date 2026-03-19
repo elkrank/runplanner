@@ -33,8 +33,8 @@ function isoWeek(d) {
   const dt = isoWeekRef(d);
   return Math.ceil((((dt-new Date(Date.UTC(dt.getUTCFullYear(),0,1)))/86400000)+1)/7);
 }
-function isoWeekYear(d) { return isoWeekRef(d).getUTCFullYear(); }
-function wkey(off=weekOff) { const d=getMonday(off); return `${isoWeekYear(d)}-W${String(isoWeek(d)).padStart(2,'0')}`; }
+function selectedWeekNumber(off=weekOff) { return isoWeek(getMonday(off)); }
+function wkey(off=weekOff) { const d=getMonday(off); return `${d.getFullYear()}-W${String(selectedWeekNumber(off)).padStart(2,'0')}`; }
 function dates(off=weekOff) { const m=getMonday(off); return Array.from({length:7},(_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
 function saveSessions() { localStorage.setItem('rp_sessions',JSON.stringify(sessions)); }
 function saveSleep() { localStorage.setItem('rp_sleep',JSON.stringify(sleepData)); }
