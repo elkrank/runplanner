@@ -24,9 +24,13 @@ function getMonday(off = 0) {
   m.setHours(0,0,0,0);
   return m;
 }
-function isoWeek(d) {
+function isoWeekRef(d) {
   const dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
   dt.setUTCDate(dt.getUTCDate()+4-(dt.getUTCDay()||7));
+  return dt;
+}
+function isoWeek(d) {
+  const dt = isoWeekRef(d);
   return Math.ceil((((dt-new Date(Date.UTC(dt.getUTCFullYear(),0,1)))/86400000)+1)/7);
 }
 function selectedWeekNumber(off=weekOff) { return isoWeek(getMonday(off)); }
