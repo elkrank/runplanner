@@ -1,0 +1,44 @@
+  .planner { display: grid; grid-template-columns: repeat(7, 1fr); min-height: calc(100vh - 165px); }
+  .day-col { border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .day-col:last-child { border-right: none; }
+  .day-header { padding: 12px 10px 8px; border-bottom: 1px solid var(--border); position: sticky; top: 67px; background: var(--bg); z-index: 10; }
+  .day-name { font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: .1em; color: var(--muted); }
+  .day-date { font-size: .73rem; color: var(--muted); opacity: .6; margin-top: 2px; }
+  .day-col.today .day-header { background: var(--surface2); }
+  .day-col.today .day-name { color: var(--accent); }
+  .day-body { flex: 1; padding: 8px 7px; display: flex; flex-direction: column; gap: 7px; }
+
+  .sleep-day-block { background: var(--surface2); border: 1px solid var(--sleep-border); border-radius: 8px; padding: 9px 10px; cursor: pointer; transition: all .2s; border-left: 3px solid var(--sleep); }
+  .sleep-day-block:hover { background: rgba(167,139,250,.1); transform: translateY(-1px); }
+  .sleep-day-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .sleep-day-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--sleep); }
+  .sleep-day-score { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; letter-spacing: .05em; }
+  .sleep-bar-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+  .sleep-bar-fill { height: 100%; border-radius: 2px; background: var(--sleep); transition: width .4s; }
+  .sleep-info { display: flex; gap: 5px; flex-wrap: wrap; }
+  .sleep-pill { font-size: .65rem; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; }
+  .q-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 1px; background: var(--border); }
+  .q-dot.on { background: var(--sleep); }
+  .sleep-add-btn { background: none; border: 1px dashed var(--sleep-border); border-radius: 7px; color: var(--sleep); opacity: .55; padding: 7px; cursor: pointer; width: 100%; font-size: .72rem; font-family: 'DM Sans', sans-serif; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .sleep-add-btn:hover { opacity: 1; background: var(--sleep-dim); }
+
+  .session-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px; position: relative; cursor: pointer; transition: all .2s; border-left: 3px solid var(--border); }
+  .session-card:hover { border-color: var(--accent); background: #1e1e2a; transform: translateY(-1px); }
+  .session-card.easy { border-left-color: var(--easy); }
+  .session-card.moderate { border-left-color: var(--moderate); }
+  .session-card.hard { border-left-color: var(--hard); }
+  .session-card.rest { border-left-color: var(--rest); opacity: .7; }
+  .session-type { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 3px; }
+  .session-card.easy .session-type { color: var(--easy); }
+  .session-card.moderate .session-type { color: var(--moderate); }
+  .session-card.hard .session-type { color: var(--hard); }
+  .session-card.rest .session-type { color: var(--rest); }
+  .session-title { font-size: .8rem; font-weight: 500; color: var(--text); margin-bottom: 5px; line-height: 1.3; }
+  .session-meta { display: flex; gap: 5px; flex-wrap: wrap; }
+  .meta-pill { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 2px 5px; font-size: .67rem; color: var(--muted); }
+  .meta-pill.calorie { border-color: rgba(255,107,53,.35); color: var(--accent2); background: rgba(255,107,53,.08); }
+  .session-delete { position: absolute; top: 5px; right: 5px; width: 18px; height: 18px; background: none; border: none; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .2s; font-size: .85rem; display: flex; align-items: center; justify-content: center; border-radius: 3px; }
+  .session-card:hover .session-delete { opacity: 1; }
+  .session-delete:hover { background: #ff4444; color: white; }
+  .add-session-btn { background: none; border: 1px dashed var(--border); border-radius: 7px; color: var(--muted); padding: 9px; cursor: pointer; width: 100%; font-size: .75rem; font-family: 'DM Sans', sans-serif; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .add-session-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,.04); }

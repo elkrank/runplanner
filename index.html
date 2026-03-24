@@ -1,9 +1,22 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunPlan — Planning d'entraînement</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/training.css">
+  <link rel="stylesheet" href="styles/panels.css">
+</head>
+<body>
+
 <header>
   <div class="logo">Run<span>Plan</span></div>
   <div class="week-nav">
-    <button id="prevWeek" type="button">&#8592;</button>
+    <button id="prevWeek">&#8592;</button>
     <div class="week-label" id="weekLabel">SEMAINE 12</div>
-    <button id="nextWeek" type="button">&#8594;</button>
+    <button id="nextWeek">&#8594;</button>
   </div>
   <div class="header-right">
     <div class="mini-widget">
@@ -11,15 +24,15 @@
       <input type="number" id="runnerWeight" min="30" max="200" step="0.5" placeholder="70">
       <span class="lbl">kg</span>
     </div>
-    <button class="btn btn-outline" id="clearWeekBtn" type="button">Vider</button>
-    <button class="btn btn-primary" id="exportBtn" type="button">Exporter</button>
+    <button class="btn btn-outline" id="clearWeekBtn">Vider</button>
+    <button class="btn btn-primary" id="exportBtn">Exporter</button>
   </div>
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" id="tabTraining" type="button" (click)="switchTab('training')">🏃 Entraînement</button>
-  <button class="tab-btn sleep-tab" id="tabSleep" type="button" (click)="switchTab('sleep')">🌙 Sommeil</button>
-  <button class="tab-btn wt-tab" id="tabWeight" type="button" (click)="switchTab('weight')">⚖️ Poids</button>
+  <button class="tab-btn active" id="tabTraining" onclick="switchTab('training')">🏃 Entraînement</button>
+  <button class="tab-btn sleep-tab" id="tabSleep" onclick="switchTab('sleep')">🌙 Sommeil</button>
+  <button class="tab-btn wt-tab" id="tabWeight" onclick="switchTab('weight')">⚖️ Poids</button>
 </div>
 
 <div class="stats-bar" id="statsTraining">
@@ -36,6 +49,7 @@
   <div class="stat-item"><div class="stat-value" id="slQuality" style="color:var(--sleep)">—</div><div class="stat-label">Qualité moy.</div></div>
   <div class="stat-item"><div class="stat-value" id="slNights" style="color:var(--sleep)">0/7</div><div class="stat-label">Nuits saisies</div></div>
 </div>
+
 <div class="stats-bar" id="statsWeight" style="display:none">
   <div class="stat-item"><div class="stat-value" id="wtCurrent" style="color:var(--wt)">—</div><div class="stat-label">Poids actuel</div></div>
   <div class="stat-item"><div class="stat-value" id="wtStart" style="color:var(--wt)">—</div><div class="stat-label">Poids initial</div></div>
@@ -84,10 +98,10 @@
       <div class="wp-chart-header">
         <div class="wp-chart-title">Courbe de poids</div>
         <div class="wp-range-btns">
-          <button class="wp-range-btn active" data-range="30" type="button" (click)="setWeightRange(30)">30j</button>
-          <button class="wp-range-btn" data-range="90" type="button" (click)="setWeightRange(90)">90j</button>
-          <button class="wp-range-btn" data-range="180" type="button" (click)="setWeightRange(180)">6m</button>
-          <button class="wp-range-btn" data-range="0" type="button" (click)="setWeightRange(0)">Tout</button>
+          <button class="wp-range-btn active" data-range="30" onclick="setWtRange(30)">30j</button>
+          <button class="wp-range-btn" data-range="90" onclick="setWtRange(90)">90j</button>
+          <button class="wp-range-btn" data-range="180" onclick="setWtRange(180)">6m</button>
+          <button class="wp-range-btn" data-range="0" onclick="setWtRange(0)">Tout</button>
         </div>
       </div>
       <div class="wp-svg-wrap" id="wtChartWrap"></div>
@@ -97,7 +111,7 @@
       <div class="wp-add-row">
         <input type="date" id="wtDate">
         <input type="number" id="wtVal" min="30" max="200" step="0.1" placeholder="kg">
-        <button class="wp-add-btn" id="wtAddBtn" type="button">＋</button>
+        <button class="wp-add-btn" id="wtAddBtn">＋</button>
       </div>
       <div class="wp-log-title">Historique</div>
       <div class="wp-log-list" id="wtLogList"></div>
@@ -105,16 +119,17 @@
   </div>
 </div>
 
+<!-- Training Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title run" id="modalTitle">NOUVELLE SÉANCE</div>
     <div class="form-group">
       <label class="form-label">Intensité</label>
       <div class="type-buttons">
-        <button class="type-btn" data-type="easy" type="button">Facile</button>
-        <button class="type-btn" data-type="moderate" type="button">Modéré</button>
-        <button class="type-btn" data-type="hard" type="button">Intense</button>
-        <button class="type-btn" data-type="rest" type="button">Repos</button>
+        <button class="type-btn" data-type="easy">Facile</button>
+        <button class="type-btn" data-type="moderate">Modéré</button>
+        <button class="type-btn" data-type="hard">Intense</button>
+        <button class="type-btn" data-type="rest">Repos</button>
       </div>
     </div>
     <div class="form-group">
@@ -134,12 +149,13 @@
     <div class="form-group"><label class="form-label">Allure cible (min/km)</label><input class="form-input" type="text" id="sessionPace" placeholder="ex: 5:30"></div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="sessionNotes" placeholder="Détails, objectifs, ressentis..."></textarea></div>
     <div class="modal-actions">
-      <button class="btn btn-outline" id="cancelBtn" type="button">Annuler</button>
-      <button class="btn btn-primary" id="saveBtn" type="button">Enregistrer</button>
+      <button class="btn btn-outline" id="cancelBtn">Annuler</button>
+      <button class="btn btn-primary" id="saveBtn">Enregistrer</button>
     </div>
   </div>
 </div>
 
+<!-- Sleep Modal -->
 <div class="modal-overlay" id="sleepModal">
   <div class="modal">
     <div class="modal-title slp" id="sleepModalTitle">SOMMEIL — LUNDI</div>
@@ -151,19 +167,27 @@
     <div class="form-group">
       <label class="form-label">Qualité du sommeil</label>
       <div class="quality-selector">
-        <button class="q-btn" data-q="1" type="button">😴 Mauvaise</button>
-        <button class="q-btn" data-q="2" type="button">😐 Correct</button>
-        <button class="q-btn" data-q="3" type="button">😊 Bonne</button>
-        <button class="q-btn" data-q="4" type="button">🌟 Excellente</button>
+        <button class="q-btn" data-q="1">😴 Mauvaise</button>
+        <button class="q-btn" data-q="2">😐 Correct</button>
+        <button class="q-btn" data-q="3">😊 Bonne</button>
+        <button class="q-btn" data-q="4">🌟 Excellente</button>
       </div>
     </div>
     <div class="form-group"><label class="form-label">Réveils nocturnes</label><input class="form-input sf" type="number" id="slWakeups" min="0" max="20" value="0"></div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="slNotes" placeholder="Stress, alimentation, récupération..."></textarea></div>
     <div class="modal-actions">
-      <button class="btn btn-outline" id="slCancelBtn" type="button">Annuler</button>
-      <button class="btn btn-slp" id="slSaveBtn" type="button">Enregistrer</button>
+      <button class="btn btn-outline" id="slCancelBtn">Annuler</button>
+      <button class="btn btn-slp" id="slSaveBtn">Enregistrer</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+  <script src="js/state.js"></script>
+  <script src="js/training.js"></script>
+  <script src="js/sleep.js"></script>
+  <script src="js/weight.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
