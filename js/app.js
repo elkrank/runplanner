@@ -30,6 +30,11 @@ function calculateTrainingStats(weekSessions) {
 
   weekSessions.forEach(daySessions => {
     daySessions.forEach(session => {
+      if (sessionCategory(session) === 'strength') {
+        totals.sessionCount += 1;
+        return;
+      }
+
       if (session.type !== 'rest') totals.sessionCount += 1;
       if (session.dist) totals.distanceKm += parseFloat(session.dist);
       if (session.dur) totals.durationMinutes += parseInt(session.dur);
@@ -162,7 +167,15 @@ document.getElementById('exportBtn').addEventListener('click',()=>{
     const s=sl[i];
     if(s&&s.duration)txt+=`  🌙 Sommeil: ${s.duration}h — ${QLABELS[s.quality]||'?'} — ${s.bedtime||'?'}→${s.wakeup||'?'}${s.wakeups?` — ${s.wakeups} réveil(s)`:''}\n`;
     if(!ws[i]||!ws[i].length)txt+='  — Aucune séance\n';
-    else ws[i].forEach(s=>{ const c=kcal(s); txt+=`  • [${TYPE_LABELS[s.type]}] ${s.kind}${s.dist?` — ${s.dist} km`:''}${s.dur?` — ${s.dur} min`:''}${s.pace?` @ ${s.pace}/km`:''}${c>0?` — ~${c} kcal`:''}${s.notes?`\n    Note: ${s.notes}`:''}\n`; });
+    else ws[i].forEach(s=>{
+      if(sessionCategory(s)==='strength'){
+        const exs=(s.exercises||[]).map(ex=>`${ex.name}${ex.sets?` ${ex.sets}x`:''}${ex.reps?` ${ex.reps} reps`:''}${ex.weightKg!==undefined?` @ ${ex.weightKg}kg`:''}`).join(', ');
+        txt+=`  • [${CATEGORY_LABELS.strength}] ${s.kind}${exs?` — ${exs}`:''}${s.notes?`\n    Note: ${s.notes}`:''}\n`;
+        return;
+      }
+      const c=kcal(s);
+      txt+=`  • [${TYPE_LABELS[s.type]}] ${s.kind}${s.dist?` — ${s.dist} km`:''}${s.dur?` — ${s.dur} min`:''}${s.pace?` @ ${s.pace}/km`:''}${c>0?` — ~${c} kcal`:''}${s.notes?`\n    Note: ${s.notes}`:''}\n`;
+    });
     txt+='\n';
   });
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));

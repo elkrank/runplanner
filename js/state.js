@@ -2,6 +2,7 @@ const DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche']
 const DAYS_SHORT = ['LUN','MAR','MER','JEU','VEN','SAM','DIM'];
 const TYPE_LABELS = { easy:'Facile', moderate:'Modéré', hard:'Intense', rest:'Repos' };
 const MET = { easy:7.0, moderate:9.5, hard:12.5, rest:1.3 };
+const CATEGORY_LABELS = { run:'Course', strength:'Musculation' };
 const QLABELS = { 1:'Mauvaise', 2:'Correct', 3:'Bonne', 4:'Excellente' };
 const QCOLORS = { 1:'var(--hard)', 2:'var(--moderate)', 3:'var(--easy)', 4:'var(--sleep)' };
 
@@ -15,7 +16,11 @@ let runnerHeight = parseFloat(localStorage.getItem('rp_height') || '0');
 let weight = parseFloat(localStorage.getItem('rp_weight') || '70');
 let wtRange = 30;
 let editState = null, sleepDay = null;
-let selType = 'easy', selQ = 3;
+let selType = 'easy', selQ = 3, selCategory = 'run';
+
+function sessionCategory(session) {
+  return session && session.category === 'strength' ? 'strength' : 'run';
+}
 
 function getMonday(off = 0) {
   const n = new Date(), day = n.getDay();
