@@ -38,3 +38,11 @@
   .stat-item:last-child { border-right: none; }
   .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--accent); letter-spacing: .05em; line-height: 1; }
   .stat-label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
+
+  #exportPreviewContainer {
+    position: fixed;
+    inset: auto auto -9999px -9999px;
+    width: 1200px;
+    opacity: 0;
+    pointer-events: none;
+  }
