@@ -133,31 +133,36 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Catégorie</label>
+      <label class="form-label">Type de séance</label>
       <select class="form-select" id="sessionCategory">
         <option value="run">Course</option>
         <option value="strength">Musculation</option>
       </select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Type de séance</label>
-      <select class="form-select" id="sessionKind">
-        <option>Footing facile</option><option>Endurance fondamentale</option>
-        <option>Fractionné court</option><option>Fractionné long</option>
-        <option>Allure spécifique</option><option>Sortie longue</option>
-        <option>Côtes / PPG</option><option>Tempo / Seuil</option>
-        <option>Récupération active</option><option>Repos complet</option><option>Personnalisé</option>
-      </select>
+    <div id="runFields">
+      <div class="form-group">
+        <label class="form-label">Séance course</label>
+        <select class="form-select" id="sessionKind">
+          <option>Footing facile</option><option>Endurance fondamentale</option>
+          <option>Fractionné court</option><option>Fractionné long</option>
+          <option>Allure spécifique</option><option>Sortie longue</option>
+          <option>Côtes / PPG</option><option>Tempo / Seuil</option>
+          <option>Récupération active</option><option>Repos complet</option><option>Personnalisé</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Distance (km)</label><input class="form-input" type="number" id="sessionDist" placeholder="ex: 10" min="0" step="0.5"></div>
+        <div class="form-group"><label class="form-label">Durée (min)</label><input class="form-input" type="number" id="sessionDur" placeholder="ex: 60" min="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Allure cible (min/km)</label><input class="form-input" type="text" id="sessionPace" placeholder="ex: 5:30"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Distance (km)</label><input class="form-input" type="number" id="sessionDist" placeholder="ex: 10" min="0" step="0.5"></div>
-      <div class="form-group"><label class="form-label">Durée (min)</label><input class="form-input" type="number" id="sessionDur" placeholder="ex: 60" min="0"></div>
-    </div>
-    <div class="form-group"><label class="form-label">Allure cible (min/km)</label><input class="form-input" type="text" id="sessionPace" placeholder="ex: 5:30"></div>
-    <div class="form-group">
-      <label class="form-label">Exercices (musculation)</label>
-      <textarea class="form-textarea" id="sessionExercises" placeholder="Format: Nom|Séries|Répétitions|Poids(kg).&#10;Ex: Squat|4|8-10|80"></textarea>
-      <div class="form-help" id="strengthHint" style="font-size:.72rem;color:var(--muted);display:none;margin-top:6px;">Un exercice par ligne. Séries optionnel, répétitions nombre ou plage (ex: 8-10).</div>
+    <div class="form-group strength-block" id="strengthBlock" style="display:none">
+      <div class="strength-block-head">
+        <label class="form-label" style="margin-bottom:0">Exercices</label>
+        <button class="btn btn-outline strength-add-btn" id="addExerciseBtn" type="button">＋ Ajouter exercice</button>
+      </div>
+      <div class="exercise-list" id="exerciseList"></div>
+      <div class="form-help" id="strengthHint" style="font-size:.72rem;color:var(--muted);display:none;margin-top:6px;">Renseignez au moins un exercice avec son nom. Les séries sont optionnelles.</div>
     </div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="sessionNotes" placeholder="Détails, objectifs, ressentis..."></textarea></div>
     <div class="modal-actions">
