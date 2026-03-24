@@ -159,27 +159,225 @@ document.getElementById('clearWeekBtn').addEventListener('click',()=>{
 });
 
 // ── EXPORT ──
-document.getElementById('exportBtn').addEventListener('click',()=>{
-  const ws=wSessions(),sl=wSleep(),dd=dates(),wn=isoWeek(getMonday(weekOff));
-  let txt=`RUNPLAN — Semaine ${wn}\n${'='.repeat(45)}\n\n`;
-  dd.forEach((d,i)=>{
-    txt+=`${DAYS[i]} ${d.toLocaleDateString('fr-FR')}\n`;
-    const s=sl[i];
-    if(s&&s.duration)txt+=`  🌙 Sommeil: ${s.duration}h — ${QLABELS[s.quality]||'?'} — ${s.bedtime||'?'}→${s.wakeup||'?'}${s.wakeups?` — ${s.wakeups} réveil(s)`:''}\n`;
-    if(!ws[i]||!ws[i].length)txt+='  — Aucune séance\n';
-    else ws[i].forEach(s=>{
-      if(sessionCategory(s)==='strength'){
-        const exs=(s.exercises||[]).map(ex=>`${ex.name}${ex.sets?` ${ex.sets}x`:''}${ex.reps?` ${ex.reps} reps`:''}${ex.weightKg!==undefined?` @ ${ex.weightKg}kg`:''}`).join(', ');
-        txt+=`  • [${CATEGORY_LABELS.strength}] ${s.kind}${exs?` — ${exs}`:''}${s.notes?`\n    Note: ${s.notes}`:''}\n`;
+function toLocalDateInput(dateValue) {
+  const date = new Date(dateValue);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function exportFileName(prefix = 'seance-musculation') {
+  return `${prefix}-${toLocalDateInput(new Date())}`;
+}
+
+function buildExerciseLabel(exercise) {
+  const reps = exercise.reps !== undefined && exercise.reps !== '' ? `${exercise.reps} reps` : 'reps ?';
+  const sets = exercise.sets ? `${exercise.sets}x` : '';
+  const weight = exercise.weightKg || exercise.weightKg === 0 ? ` @ ${exercise.weightKg} kg` : '';
+  return `${exercise.name} ${sets} ${reps}${weight}`.replace(/\s+/g, ' ').trim();
+}
+
+function buildExportModel() {
+  const ws = wSessions();
+  const dd = dates();
+  const wn = isoWeek(getMonday(weekOff));
+  const days = dd.map((date, dayIndex) => ({
+    dayLabel: DAYS[dayIndex],
+    dateLabel: date.toLocaleDateString('fr-FR'),
+    sessions: (ws[dayIndex] || []).map(session => ({
+      title: session.kind || 'Séance',
+      category: sessionCategory(session),
+      typeLabel: sessionCategory(session) === 'strength'
+        ? CATEGORY_LABELS.strength
+        : TYPE_LABELS[session.type] || 'Course',
+      exercises: (session.exercises || []).map(buildExerciseLabel),
+      reps: (session.exercises || []).map(ex => ex.reps).filter(Boolean).join(', '),
+      weight: (session.exercises || []).map(ex => ex.weightKg).filter(value => value || value === 0).join(', '),
+      notes: session.notes || '',
+    })),
+  }));
+
+  return {
+    weekNumber: wn,
+    generatedAtLabel: new Date().toLocaleDateString('fr-FR'),
+    days,
+  };
+}
+
+function renderExportPreview(model) {
+  const previewCard = document.getElementById('exportPreviewCard');
+  const dayBlocks = model.days.map(day => `
+    <section class="export-day">
+      <div class="export-day-title">${day.dayLabel} — ${day.dateLabel}</div>
+      ${(day.sessions.length
+        ? day.sessions.map(session => `
+          <div class="export-item">
+            <div class="export-item-head">
+              <span class="export-tag">${session.typeLabel}</span>
+              <span class="export-item-title">${session.title}</span>
+            </div>
+            ${session.category === 'strength' && session.exercises.length
+              ? `<ul class="export-ex-list">${session.exercises.map(ex => `<li>${ex}</li>`).join('')}</ul>`
+              : '<div class="export-item-meta">Aucun détail exercice</div>'}
+          </div>
+        `).join('')
+        : '<div class="export-empty">Aucune séance</div>')}
+    </section>
+  `).join('');
+
+  previewCard.innerHTML = `
+    <header class="export-head">
+      <h2>RunPlan — Semaine ${model.weekNumber}</h2>
+      <p>Aperçu export • ${model.generatedAtLabel}</p>
+    </header>
+    <div class="export-days">${dayBlocks}</div>
+  `;
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
+}
+
+function drawSessionToCanvas(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  let currentY = y;
+  words.forEach(word => {
+    const probe = line ? `${line} ${word}` : word;
+    const width = ctx.measureText(probe).width;
+    if (width > maxWidth && line) {
+      ctx.fillText(line, x, currentY);
+      line = word;
+      currentY += lineHeight;
+    } else {
+      line = probe;
+    }
+  });
+  if (line) ctx.fillText(line, x, currentY);
+  return currentY + lineHeight;
+}
+
+async function exportWeekAsPng() {
+  const model = buildExportModel();
+  renderExportPreview(model);
+
+  const canvas = document.createElement('canvas');
+  const width = 1300;
+  const baseHeight = 240;
+  const extraLines = model.days.reduce((acc, day) => {
+    if (!day.sessions.length) return acc + 2;
+    return acc + day.sessions.reduce((sessionAcc, session) => {
+      const lineCount = Math.max(1, session.exercises.length);
+      return sessionAcc + 3 + lineCount;
+    }, 0);
+  }, 0);
+  const height = Math.max(900, baseHeight + extraLines * 30);
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas-context-unavailable');
+
+  ctx.fillStyle = '#f9fafb';
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = '#111827';
+  ctx.font = '700 46px "DM Sans", sans-serif';
+  ctx.fillText(`RunPlan — Semaine ${model.weekNumber}`, 60, 80);
+  ctx.font = '500 26px "DM Sans", sans-serif';
+  ctx.fillStyle = '#4b5563';
+  ctx.fillText(`Export du ${model.generatedAtLabel}`, 60, 122);
+
+  let y = 170;
+  const margin = 60;
+  const contentWidth = width - margin * 2;
+  model.days.forEach(day => {
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '700 30px "DM Sans", sans-serif';
+    ctx.fillText(`${day.dayLabel} — ${day.dateLabel}`, margin, y);
+    y += 40;
+
+    if (!day.sessions.length) {
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '500 24px "DM Sans", sans-serif';
+      ctx.fillText('• Aucune séance', margin + 18, y);
+      y += 42;
+      return;
+    }
+
+    day.sessions.forEach(session => {
+      ctx.fillStyle = '#111827';
+      ctx.font = '600 24px "DM Sans", sans-serif';
+      y = drawSessionToCanvas(
+        ctx,
+        `• [${session.typeLabel}] ${session.title}`,
+        margin + 18,
+        y,
+        contentWidth - 18,
+        32,
+      );
+      if (session.category === 'strength' && session.exercises.length) {
+        ctx.fillStyle = '#374151';
+        ctx.font = '500 22px "DM Sans", sans-serif';
+        session.exercises.forEach(exerciseLine => {
+          y = drawSessionToCanvas(ctx, `- ${exerciseLine}`, margin + 44, y, contentWidth - 44, 28);
+        });
+      } else {
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '500 21px "DM Sans", sans-serif';
+        y = drawSessionToCanvas(ctx, '- Aucun détail exercice', margin + 44, y, contentWidth - 44, 28);
+      }
+      y += 10;
+    });
+    y += 10;
+  });
+
+  downloadDataUrl(canvas.toDataURL('image/png'), `${exportFileName()}.png`);
+}
+
+function buildWeekTextExport() {
+  const ws = wSessions();
+  const sl = wSleep();
+  const dd = dates();
+  const wn = isoWeek(getMonday(weekOff));
+  let txt = `RUNPLAN — Semaine ${wn}\n${'='.repeat(45)}\n\n`;
+  dd.forEach((d, i) => {
+    txt += `${DAYS[i]} ${d.toLocaleDateString('fr-FR')}\n`;
+    const s = sl[i];
+    if (s && s.duration) txt += `  🌙 Sommeil: ${s.duration}h — ${QLABELS[s.quality] || '?'} — ${s.bedtime || '?'}→${s.wakeup || '?'}${s.wakeups ? ` — ${s.wakeups} réveil(s)` : ''}\n`;
+    if (!ws[i] || !ws[i].length) txt += '  — Aucune séance\n';
+    else ws[i].forEach(session => {
+      if (sessionCategory(session) === 'strength') {
+        const exs = (session.exercises || []).map(ex => `${ex.name}${ex.sets ? ` ${ex.sets}x` : ''}${ex.reps ? ` ${ex.reps} reps` : ''}${ex.weightKg !== undefined ? ` @ ${ex.weightKg}kg` : ''}`).join(', ');
+        txt += `  • [${CATEGORY_LABELS.strength}] ${session.kind}${exs ? ` — ${exs}` : ''}${session.notes ? `\n    Note: ${session.notes}` : ''}\n`;
         return;
       }
-      const c=kcal(s);
-      txt+=`  • [${TYPE_LABELS[s.type]}] ${s.kind}${s.dist?` — ${s.dist} km`:''}${s.dur?` — ${s.dur} min`:''}${s.pace?` @ ${s.pace}/km`:''}${c>0?` — ~${c} kcal`:''}${s.notes?`\n    Note: ${s.notes}`:''}\n`;
+      const c = kcal(session);
+      txt += `  • [${TYPE_LABELS[session.type]}] ${session.kind}${session.dist ? ` — ${session.dist} km` : ''}${session.dur ? ` — ${session.dur} min` : ''}${session.pace ? ` @ ${session.pace}/km` : ''}${c > 0 ? ` — ~${c} kcal` : ''}${session.notes ? `\n    Note: ${session.notes}` : ''}\n`;
     });
-    txt+='\n';
+    txt += '\n';
   });
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
-  a.download=`runplan-semaine-${isoWeek(getMonday(weekOff))}.txt`; a.click(); showToast('Export téléchargé ✓');
+  return txt;
+}
+
+function exportWeekAsText() {
+  const text = buildWeekTextExport();
+  const blobUrl = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  downloadDataUrl(blobUrl, `${exportFileName('runplan-semaine')}.txt`);
+}
+
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  try {
+    await exportWeekAsPng();
+    showToast('Export PNG téléchargé ✓');
+  } catch (error) {
+    console.error(error);
+    showToast('Échec export image. Export texte téléchargé.', false);
+    exportWeekAsText();
+  }
 });
 
 function showToast(msg,isSleep=false,type=''){

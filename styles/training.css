@@ -43,7 +43,85 @@
   .add-session-btn { background: none; border: 1px dashed var(--border); border-radius: 7px; color: var(--muted); padding: 9px; cursor: pointer; width: 100%; font-size: .75rem; font-family: 'DM Sans', sans-serif; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
   .add-session-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,.04); }
 
-  .session-card.strength { border-left-color: #c084fc; }
-  .session-card.strength .session-type { color: #c084fc; }
-  .strength-exercises { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
-  .strength-exercise-item { font-size: .7rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 3px 6px; }
+  .export-card {
+    background: #f8fafc;
+    color: #0f172a;
+    border-radius: 18px;
+    padding: 28px;
+    border: 1px solid #dbe2ea;
+    box-shadow: 0 14px 40px rgba(15, 23, 42, .12);
+    font-family: 'DM Sans', sans-serif;
+  }
+  .export-head h2 {
+    margin: 0;
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+  }
+  .export-head p {
+    margin-top: 4px;
+    color: #475569;
+    font-size: .92rem;
+  }
+  .export-days {
+    margin-top: 18px;
+    display: grid;
+    gap: 12px;
+  }
+  .export-day {
+    background: #ffffff;
+    border: 1px solid #d8e0ea;
+    border-left: 4px solid #334155;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .export-day-title {
+    font-size: .92rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+  }
+  .export-item {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #d2dae5;
+  }
+  .export-item:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .export-item-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .export-tag {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+  .export-item-title {
+    font-size: .86rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  .export-ex-list {
+    margin: 7px 0 0 18px;
+    font-size: .78rem;
+    color: #334155;
+    display: grid;
+    gap: 4px;
+  }
+  .export-empty,
+  .export-item-meta {
+    margin-top: 6px;
+    font-size: .78rem;
+    color: #64748b;
+  }
