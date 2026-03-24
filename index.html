@@ -133,6 +133,13 @@
       </div>
     </div>
     <div class="form-group">
+      <label class="form-label">Catégorie</label>
+      <select class="form-select" id="sessionCategory">
+        <option value="run">Course</option>
+        <option value="strength">Musculation</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">Type de séance</label>
       <select class="form-select" id="sessionKind">
         <option>Footing facile</option><option>Endurance fondamentale</option>
@@ -147,6 +154,11 @@
       <div class="form-group"><label class="form-label">Durée (min)</label><input class="form-input" type="number" id="sessionDur" placeholder="ex: 60" min="0"></div>
     </div>
     <div class="form-group"><label class="form-label">Allure cible (min/km)</label><input class="form-input" type="text" id="sessionPace" placeholder="ex: 5:30"></div>
+    <div class="form-group">
+      <label class="form-label">Exercices (musculation)</label>
+      <textarea class="form-textarea" id="sessionExercises" placeholder="Format: Nom|Séries|Répétitions|Poids(kg).&#10;Ex: Squat|4|8-10|80"></textarea>
+      <div class="form-help" id="strengthHint" style="font-size:.72rem;color:var(--muted);display:none;margin-top:6px;">Un exercice par ligne. Séries optionnel, répétitions nombre ou plage (ex: 8-10).</div>
+    </div>
     <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="sessionNotes" placeholder="Détails, objectifs, ressentis..."></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="cancelBtn">Annuler</button>
