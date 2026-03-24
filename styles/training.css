@@ -42,3 +42,8 @@
   .session-delete:hover { background: #ff4444; color: white; }
   .add-session-btn { background: none; border: 1px dashed var(--border); border-radius: 7px; color: var(--muted); padding: 9px; cursor: pointer; width: 100%; font-size: .75rem; font-family: 'DM Sans', sans-serif; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
   .add-session-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,.04); }
+
+  .session-card.strength { border-left-color: #c084fc; }
+  .session-card.strength .session-type { color: #c084fc; }
+  .strength-exercises { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+  .strength-exercise-item { font-size: .7rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 3px 6px; }
