@@ -1,48 +1,142 @@
-function switchTab(t) {
-  tab=t;
-  document.getElementById('tabTraining').classList.toggle('active',t==='training');
-  document.getElementById('tabSleep').classList.toggle('active',t==='sleep');
-  document.getElementById('tabWeight').classList.toggle('active',t==='weight');
-  document.getElementById('planner').style.display = t==='training'?'grid':'none';
-  document.getElementById('sleepPanel').style.display = t==='sleep'?'block':'none';
-  document.getElementById('weightPanel').style.display = t==='weight'?'block':'none';
-  document.getElementById('statsTraining').style.display = t==='training'?'flex':'none';
-  document.getElementById('statsSleep').style.display = t==='sleep'?'flex':'none';
-  document.getElementById('statsWeight').style.display = t==='weight'?'flex':'none';
+function setElementDisplay(id, isVisible, visibleDisplay) {
+  document.getElementById(id).style.display = isVisible ? visibleDisplay : 'none';
+}
+
+function switchTab(nextTab) {
+  tab = nextTab;
+
+  document.getElementById('tabTraining').classList.toggle('active', nextTab === 'training');
+  document.getElementById('tabSleep').classList.toggle('active', nextTab === 'sleep');
+  document.getElementById('tabWeight').classList.toggle('active', nextTab === 'weight');
+
+  setElementDisplay('planner', nextTab === 'training', 'grid');
+  setElementDisplay('sleepPanel', nextTab === 'sleep', 'block');
+  setElementDisplay('weightPanel', nextTab === 'weight', 'block');
+  setElementDisplay('statsTraining', nextTab === 'training', 'flex');
+  setElementDisplay('statsSleep', nextTab === 'sleep', 'flex');
+  setElementDisplay('statsWeight', nextTab === 'weight', 'flex');
+
   render();
 }
 
+function calculateTrainingStats(weekSessions) {
+  const totals = {
+    distanceKm: 0,
+    durationMinutes: 0,
+    sessionCount: 0,
+    calories: 0,
+    typeCounts: { easy: 0, moderate: 0, hard: 0, rest: 0 },
+  };
+
+  weekSessions.forEach(daySessions => {
+    daySessions.forEach(session => {
+      if (session.type !== 'rest') totals.sessionCount += 1;
+      if (session.dist) totals.distanceKm += parseFloat(session.dist);
+      if (session.dur) totals.durationMinutes += parseInt(session.dur);
+      totals.calories += kcal(session);
+      totals.typeCounts[session.type] = (totals.typeCounts[session.type] || 0) + 1;
+    });
+  });
+
+  totals.dominantType = Object.entries(totals.typeCounts)
+    .sort((left, right) => right[1] - left[1])[0];
+
+  return totals;
+}
+
+function calculateSleepStats(weekSleep) {
+  const filledNights = weekSleep.filter(Boolean);
+  const durations = filledNights
+    .map(night => (night && night.duration ? night.duration : 0))
+    .filter(duration => duration > 0);
+
+  if (!durations.length) {
+    return {
+      nightsFilled: filledNights.length,
+      averageHours: null,
+      totalHours: null,
+      bestNightHours: null,
+      averageQuality: null,
+    };
+  }
+
+  const totalHours = durations.reduce((acc, value) => acc + value, 0);
+  const qualityEntries = filledNights.filter(night => night && night.quality);
+  const averageQuality = qualityEntries.length
+    ? qualityEntries.reduce((acc, entry) => acc + entry.quality, 0) / qualityEntries.length
+    : 0;
+
+  return {
+    nightsFilled: filledNights.length,
+    averageHours: totalHours / durations.length,
+    totalHours,
+    bestNightHours: Math.max(...durations),
+    averageQuality,
+  };
+}
+
+function formatMinutesAsDuration(totalMinutes) {
+  if (totalMinutes <= 0) return '0 h';
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) return `${minutes}min`;
+  if (minutes === 0) return `${hours}h`;
+
+  return `${hours}h${minutes}m`;
+}
+
+function renderTrainingStats(trainingStats) {
+  document.getElementById('statKm').textContent = trainingStats.distanceKm > 0
+    ? `${trainingStats.distanceKm.toFixed(1)} km`
+    : '0 km';
+
+  document.getElementById('statTime').textContent = formatMinutesAsDuration(trainingStats.durationMinutes);
+  document.getElementById('statSessions').textContent = trainingStats.sessionCount;
+  document.getElementById('statCalories').textContent = trainingStats.calories > 0
+    ? `${trainingStats.calories.toLocaleString('fr-FR')} kcal`
+    : '— kcal';
+
+  document.getElementById('statIntensity').textContent =
+    trainingStats.dominantType && trainingStats.dominantType[1] > 0
+      ? TYPE_LABELS[trainingStats.dominantType[0]]
+      : '—';
+}
+
+function renderSleepStats(sleepStats) {
+  document.getElementById('slNights').textContent = `${sleepStats.nightsFilled}/7`;
+
+  if (sleepStats.averageHours === null) {
+    ['slAvg', 'slTotal', 'slBest', 'slQuality']
+      .forEach(id => { document.getElementById(id).textContent = '—'; });
+    return;
+  }
+
+  document.getElementById('slAvg').textContent = `${sleepStats.averageHours.toFixed(1)}h`;
+  document.getElementById('slTotal').textContent = `${sleepStats.totalHours.toFixed(1)}h`;
+  document.getElementById('slBest').textContent = `${sleepStats.bestNightHours.toFixed(1)}h`;
+  document.getElementById('slQuality').textContent = QLABELS[Math.round(sleepStats.averageQuality)] || '—';
+}
+
 function render() {
-  const ws = wSessions(), sl = wSleep(), dd = dates();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const wn = isoWeek(getMonday());
-  document.getElementById('weekLabel').textContent = `SEMAINE ${wn}`;
+  const weekSessions = wSessions();
+  const weekSleep = wSleep();
+  const weekDates = dates();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  // Training stats
-  let km=0,min=0,cnt=0,cal=0, tc={easy:0,moderate:0,hard:0,rest:0};
-  ws.forEach(day=>day.forEach(s=>{ if(s.type!=='rest')cnt++; if(s.dist)km+=parseFloat(s.dist); if(s.dur)min+=parseInt(s.dur); cal+=kcal(s); tc[s.type]=(tc[s.type]||0)+1; }));
-  const dom=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('statKm').textContent=km>0?km.toFixed(1)+' km':'0 km';
-  const hh=Math.floor(min/60),mm=min%60;
-  document.getElementById('statTime').textContent=min>0?(hh>0?`${hh}h${mm>0?mm+'m':''}`:`${mm}min`):'0 h';
-  document.getElementById('statSessions').textContent=cnt;
-  document.getElementById('statCalories').textContent=cal>0?cal.toLocaleString('fr-FR')+' kcal':'— kcal';
-  document.getElementById('statIntensity').textContent=dom&&dom[1]>0?TYPE_LABELS[dom[0]]:'—';
+  const weekNumber = isoWeek(getMonday());
+  document.getElementById('weekLabel').textContent = `SEMAINE ${weekNumber}`;
 
-  // Sleep stats
-  const filled=sl.filter(Boolean), hrs=filled.map(s=>s&&s.duration?s.duration:0).filter(h=>h>0);
-  document.getElementById('slNights').textContent=`${filled.length}/7`;
-  if(hrs.length){
-    const avg=hrs.reduce((a,b)=>a+b,0)/hrs.length;
-    document.getElementById('slAvg').textContent=avg.toFixed(1)+'h';
-    document.getElementById('slTotal').textContent=hrs.reduce((a,b)=>a+b,0).toFixed(1)+'h';
-    document.getElementById('slBest').textContent=Math.max(...hrs).toFixed(1)+'h';
-    const fq=filled.filter(s=>s&&s.quality), aq=fq.length?fq.reduce((a,s)=>a+s.quality,0)/fq.length:0;
-    document.getElementById('slQuality').textContent=QLABELS[Math.round(aq)]||'—';
-  } else { ['slAvg','slTotal','slBest','slQuality'].forEach(id=>document.getElementById(id).textContent='—'); }
+  const trainingStats = calculateTrainingStats(weekSessions);
+  const sleepStats = calculateSleepStats(weekSleep);
 
-  if(tab==='training') renderTraining(ws,sl,dd,today);
-  else if(tab==='sleep') renderSleepPanel(sl,dd,wn);
+  renderTrainingStats(trainingStats);
+  renderSleepStats(sleepStats);
+
+  if (tab === 'training') renderTraining(weekSessions, weekSleep, weekDates, today);
+  else if (tab === 'sleep') renderSleepPanel(weekSleep, weekDates, weekNumber);
   else renderWeightPanel();
 }
 
