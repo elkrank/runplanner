@@ -148,14 +148,57 @@ function render() {
 // ── WEIGHT (header widget) ──
 const wi=document.getElementById('runnerWeight');
 wi.value=weight;
-wi.addEventListener('input',()=>{ const v=parseFloat(wi.value); if(v>=30&&v<=200){weight=v;localStorage.setItem('rp_weight',v);render();} });
+wi.addEventListener('input',()=>{
+  const v=parseFloat(wi.value);
+  if(v>=30&&v<=200){
+    const updateWeight = async () => {
+      weight=v;
+      localStorage.setItem('rp_weight',v);
+      if (hasApiConfig()) {
+        await apiFetch('/me', {
+          method: 'PATCH',
+          body: JSON.stringify({ weightCurrentKg: v }),
+        });
+      }
+      render();
+    };
+    updateWeight().catch((error) => {
+      console.error(error);
+      showToast('Erreur API profil');
+    });
+  }
+});
 
 // ── NAV ──
-document.getElementById('prevWeek').addEventListener('click',()=>{ weekOff--; render(); });
-document.getElementById('nextWeek').addEventListener('click',()=>{ weekOff++; render(); });
+document.getElementById('prevWeek').addEventListener('click', async ()=>{
+  weekOff--;
+  if (hasApiConfig()) {
+    try { await hydrateWeekFromApi(weekOff); } catch (error) { console.error(error); }
+  }
+  render();
+});
+document.getElementById('nextWeek').addEventListener('click', async ()=>{
+  weekOff++;
+  if (hasApiConfig()) {
+    try { await hydrateWeekFromApi(weekOff); } catch (error) { console.error(error); }
+  }
+  render();
+});
 document.getElementById('clearWeekBtn').addEventListener('click',()=>{
   if(!confirm('Vider les séances de cette semaine ?'))return;
-  sessions[wkey()]=Array.from({length:7},()=>[]); saveSessions(); render(); showToast('Semaine vidée');
+  const clearWeek = async () => {
+    if (hasApiConfig()) {
+      await apiFetch(`/weeks/${wkey()}/sessions`, { method: 'DELETE' });
+    }
+    sessions[wkey()]=Array.from({length:7},()=>[]);
+    saveSessions();
+    render();
+    showToast('Semaine vidée');
+  };
+  clearWeek().catch((error) => {
+    console.error(error);
+    showToast('Erreur API semaine');
+  });
 });
 
 // ── EXPORT ──
@@ -437,5 +480,27 @@ function initSample(){
   }
 }
 
-initSample();
-render();
+async function bootstrapData() {
+  if (hasApiConfig()) {
+    try {
+      await hydrateProfileFromApi();
+      await hydrateWeekFromApi(weekOff);
+      await hydrateWeightFromApi(365);
+      const runnerWeightInput = document.getElementById('runnerWeight');
+      const wtGoalInputEl = document.getElementById('wtGoalInput');
+      const wtHeightInputEl = document.getElementById('wtHeightInput');
+      if (runnerWeightInput) runnerWeightInput.value = weight || '';
+      if (wtGoalInputEl) wtGoalInputEl.value = weightGoal || '';
+      if (wtHeightInputEl) wtHeightInputEl.value = runnerHeight || '';
+      return;
+    } catch (error) {
+      console.error(error);
+      showToast('API indisponible, mode local activé');
+    }
+  }
+  initSample();
+}
+
+bootstrapData().finally(() => {
+  render();
+});

@@ -82,7 +82,21 @@ function renderWeightPanel() {
   });
   list.addEventListener('click',e=>{
     const btn=e.target.closest('.wp-log-del');
-    if(btn){ weightLog=weightLog.filter(x=>x.date!==btn.dataset.date); localStorage.setItem('rp_weightlog',JSON.stringify(weightLog)); renderWeightPanel(); showToast('Mesure supprimée',false,'wt'); }
+    if(btn){
+      const deleteEntry = async () => {
+        if (hasApiConfig()) {
+          await apiFetch(`/weight/${btn.dataset.date}`, { method: 'DELETE' });
+        }
+        weightLog=weightLog.filter(x=>x.date!==btn.dataset.date);
+        localStorage.setItem('rp_weightlog',JSON.stringify(weightLog));
+        renderWeightPanel();
+        showToast('Mesure supprimée',false,'wt');
+      };
+      deleteEntry().catch((error) => {
+        console.error(error);
+        showToast('Erreur suppression poids', false, 'wt');
+      });
+    }
   });
 }
 
@@ -187,8 +201,40 @@ const wtGoalInput = document.getElementById('wtGoalInput');
 const wtHeightInput = document.getElementById('wtHeightInput');
 wtGoalInput.value = weightGoal || '';
 wtHeightInput.value = runnerHeight || '';
-wtGoalInput.addEventListener('change',()=>{ weightGoal=parseFloat(wtGoalInput.value)||0; localStorage.setItem('rp_wtgoal',weightGoal); renderWeightPanel(); });
-wtHeightInput.addEventListener('change',()=>{ runnerHeight=parseFloat(wtHeightInput.value)||0; localStorage.setItem('rp_height',runnerHeight); renderWeightPanel(); });
+wtGoalInput.addEventListener('change',()=>{
+  const updateGoal = async () => {
+    weightGoal=parseFloat(wtGoalInput.value)||0;
+    localStorage.setItem('rp_wtgoal',weightGoal);
+    if (hasApiConfig()) {
+      await apiFetch('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ weightGoalKg: weightGoal || null }),
+      });
+    }
+    renderWeightPanel();
+  };
+  updateGoal().catch((error) => {
+    console.error(error);
+    showToast('Erreur API profil', false, 'wt');
+  });
+});
+wtHeightInput.addEventListener('change',()=>{
+  const updateHeight = async () => {
+    runnerHeight=parseFloat(wtHeightInput.value)||0;
+    localStorage.setItem('rp_height',runnerHeight);
+    if (hasApiConfig()) {
+      await apiFetch('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ heightCm: runnerHeight || null }),
+      });
+    }
+    renderWeightPanel();
+  };
+  updateHeight().catch((error) => {
+    console.error(error);
+    showToast('Erreur API profil', false, 'wt');
+  });
+});
 
 // Set default date to today
 document.getElementById('wtDate').value = new Date().toISOString().split('T')[0];
@@ -197,13 +243,29 @@ document.getElementById('wtAddBtn').addEventListener('click',()=>{
   const date=document.getElementById('wtDate').value;
   const val=parseFloat(document.getElementById('wtVal').value);
   if(!date||isNaN(val)||val<30||val>250){ showToast('Valeur invalide','','wt'); return; }
-  // Replace existing entry for same date
-  weightLog=weightLog.filter(e=>e.date!==date);
-  weightLog.push({date,val});
-  localStorage.setItem('rp_weightlog',JSON.stringify(weightLog));
-  // Update running weight for calorie calc
-  weight=val; localStorage.setItem('rp_weight',val);
-  document.getElementById('runnerWeight').value=val;
-  document.getElementById('wtVal').value='';
-  renderWeightPanel(); showToast('Poids enregistré ✓',false,'wt');
+  const saveWeight = async () => {
+    if (hasApiConfig()) {
+      await apiFetch(`/weight/${date}`, {
+        method: 'PUT',
+        body: JSON.stringify({ weightKg: val }),
+      });
+      await apiFetch('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ weightCurrentKg: val }),
+      });
+    }
+    // Replace existing entry for same date
+    weightLog=weightLog.filter(e=>e.date!==date);
+    weightLog.push({date,val});
+    localStorage.setItem('rp_weightlog',JSON.stringify(weightLog));
+    // Update running weight for calorie calc
+    weight=val; localStorage.setItem('rp_weight',val);
+    document.getElementById('runnerWeight').value=val;
+    document.getElementById('wtVal').value='';
+    renderWeightPanel(); showToast('Poids enregistré ✓',false,'wt');
+  };
+  saveWeight().catch((error) => {
+    console.error(error);
+    showToast('Erreur API poids', false, 'wt');
+  });
 });

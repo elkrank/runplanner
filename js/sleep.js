@@ -77,5 +77,21 @@ document.getElementById('slSaveBtn').addEventListener('click',()=>{
   let dur=parseFloat(document.getElementById('slDuration').value);
   if(!dur||isNaN(dur))dur=slDur(bt,wk);
   const entry={bedtime:bt,wakeup:wk,duration:dur,quality:selQ,wakeups:parseInt(document.getElementById('slWakeups').value)||0,notes:document.getElementById('slNotes').value};
-  wSleep()[sleepDay]=entry; saveSleep(); closeSleepModal(); render(); showToast('Sommeil enregistré 🌙',true);
+  const saveSleepEntry = async () => {
+    if (hasApiConfig()) {
+      const dayDate = dateKey(dates()[sleepDay]);
+      const payload = await apiFetch(`/sleep/${dayDate}`, {
+        method: 'PUT',
+        body: JSON.stringify(toApiSleepInput(entry)),
+      });
+      wSleep()[sleepDay] = toLocalSleep(payload);
+    } else {
+      wSleep()[sleepDay]=entry;
+    }
+    saveSleep(); closeSleepModal(); render(); showToast('Sommeil enregistré 🌙',true);
+  };
+  saveSleepEntry().catch((error) => {
+    console.error(error);
+    showToast('Erreur API sommeil', true);
+  });
 });
