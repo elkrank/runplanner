@@ -117,7 +117,25 @@ function renderTraining(ws,sl,dd,today) {
 
     const ab=document.createElement('button'); ab.className='add-session-btn'; ab.innerHTML='＋ Ajouter séance';
     ab.addEventListener('click',()=>openModal(i,null)); body.appendChild(ab);
-    body.addEventListener('click',e=>{ const d=e.target.closest('.session-delete'); if(d){ wSessions()[parseInt(d.dataset.d)].splice(parseInt(d.dataset.si),1); saveSessions(); render(); showToast('Séance supprimée'); }});
+    body.addEventListener('click',e=>{
+      const d=e.target.closest('.session-delete');
+      if(!d) return;
+      const dayIndex = parseInt(d.dataset.d);
+      const sessionIndex = parseInt(d.dataset.si);
+      const weekSessions = wSessions();
+      const target = weekSessions[dayIndex]?.[sessionIndex];
+      const removeSession = async () => {
+        if (hasApiConfig() && target?.id) {
+          await apiFetch(`/sessions/${target.id}`, { method: 'DELETE' });
+        }
+        weekSessions[dayIndex].splice(sessionIndex,1);
+        saveSessions(); render(); showToast('Séance supprimée');
+      };
+      removeSession().catch((error) => {
+        console.error(error);
+        showToast('Erreur suppression séance');
+      });
+    });
     col.appendChild(body); p.appendChild(col);
   });
 }
@@ -175,7 +193,34 @@ document.getElementById('saveBtn').addEventListener('click',()=>{
     s.pace='';
   }
   const ws=wSessions(); if(!ws[curDay])ws[curDay]=[];
-  if(editState!==null){ws[curDay][editState]=s;showToast('Séance mise à jour ✓');}
-  else{ws[curDay].push(s);showToast('Séance ajoutée ✓');}
-  saveSessions();closeModal();render();
+  const dayDate = dateKey(dates()[curDay]);
+  const runSave = async () => {
+    if (hasApiConfig()) {
+      const payload = toApiSessionInput(s, dayDate);
+      if (editState !== null && ws[curDay][editState]?.id) {
+        const updated = await apiFetch(`/sessions/${ws[curDay][editState].id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        ws[curDay][editState] = toLocalSession(updated);
+        showToast('Séance mise à jour ✓');
+      } else {
+        const created = await apiFetch('/sessions', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        if (editState !== null) ws[curDay][editState] = toLocalSession(created);
+        else ws[curDay].push(toLocalSession(created));
+        showToast('Séance ajoutée ✓');
+      }
+    } else {
+      if(editState!==null){ws[curDay][editState]=s;showToast('Séance mise à jour ✓');}
+      else{ws[curDay].push(s);showToast('Séance ajoutée ✓');}
+    }
+    saveSessions();closeModal();render();
+  };
+  runSave().catch((error) => {
+    console.error(error);
+    showToast('Erreur API séance');
+  });
 });
